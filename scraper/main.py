@@ -73,16 +73,16 @@ def fetch_and_parse(client: Client, card_id: str, stores: Stores,
         print(f"[fail] {card_id}: {exc}")
         return None
     raw = parsed["card"]
-    image_url = None
+    row = card_row(raw, source_url=url, image_url=None)  # 先建行，用规范化后的版本号当图片目录
     img = best_image(parsed["images"])
     if img:
         try:
             data = client.get_binary(img)
-            key_file = f"players/{raw.get('version')}/{card_id}.webp"
+            key_file = f"players/{row['version']}/{card_id}.webp"
             image_url = stores.upload_image(data, key_file)
         except Exception as exc:
             print(f"[warn] 图片失败 {card_id}: {exc}")
-    row = card_row(raw, source_url=url, image_url=image_url)
+    row["image_url"] = image_url
     stores.upsert("cards", [row], on_conflict="id")
     if snapshot:
         today = dt.date.today().isoformat()
