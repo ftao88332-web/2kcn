@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import cards from "@/data/cards.json";
 import { IndexCard } from "@/lib/types";
 import { ovrColor } from "@/lib/format";
+import { withBase } from "@/lib/base";
 import { supa } from "@/lib/supabase";
 import { DetailCard, PriceSnapshot } from "@/lib/types";
 import PriceChart from "@/components/price-chart";
@@ -61,14 +62,18 @@ function PlayerDetail({ id, fallback }: { id: string; fallback: IndexCard }) {
 
   if (loading) return <p className="text-sm text-slate-500">加载中…</p>;
 
-  const attrs = detail?.attrs ?? {};
+  // 未配置 Supabase 时用打包进索引的全量数据兜底（attrs 随 cards.json 一起发布）
+  const attrs = (detail?.attrs ?? (fallback as unknown as { attrs?: Record<string, number | null> }).attrs) ?? {};
+  const heights = detail?.height_cm ?? (fallback as unknown as { height_cm?: number | null }).height_cm ?? null;
+  const wingspan = detail?.wingspan_cm ?? (fallback as unknown as { wingspan_cm?: number | null }).wingspan_cm ?? null;
+  const weight = detail?.weight_kg ?? (fallback as unknown as { weight_kg?: number | null }).weight_kg ?? null;
   return (
     <div className="space-y-6">
       <div className="flex gap-4 rounded-2xl border border-court-700 bg-court-800 p-5">
         {detail?.image_url || fallback.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={detail?.image_url ?? fallback.image ?? ""}
+            src={withBase(detail?.image_url ?? fallback.image ?? "")}
             alt={fallback.name}
             className="h-36 w-32 rounded-lg object-cover"
           />
@@ -82,10 +87,10 @@ function PlayerDetail({ id, fallback }: { id: string; fallback: IndexCard }) {
             {fallback.version} · {fallback.theme ?? ""} · {fallback.position}
             {fallback.sec ? `/${fallback.sec}` : ""}
           </p>
-          {detail?.height_cm ? (
+          {heights ? (
             <p className="mt-1 text-xs text-slate-500">
-              身高 {(detail.height_cm / 100).toFixed(2)}m · 臂展{" "}
-              {detail.wingspan_cm ? (detail.wingspan_cm / 100).toFixed(2) : "?"}m · 体重{detail.weight_kg}kg
+              身高 {(heights / 100).toFixed(2)}m · 臂展{" "}
+              {wingspan ? (wingspan / 100).toFixed(2) : "?"}m · 体重{weight}kg
             </p>
           ) : null}
         </div>

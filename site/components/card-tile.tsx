@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { IndexCard } from "@/lib/types";
 import { ovrColor } from "@/lib/format";
+import { withBase } from "@/lib/base";
 
 export default function CardTile({ card }: { card: IndexCard }) {
   return (
@@ -21,7 +22,7 @@ export default function CardTile({ card }: { card: IndexCard }) {
         {card.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={card.image}
+            src={withBase(card.image)}
             alt={card.name}
             loading="lazy"
             className="h-20 w-16 rounded object-cover"

@@ -56,12 +56,20 @@ class Stores:
         elif table == "price_snapshots":
             self.stats["snapshots_upserted"] += n
 
-    # ---------- R2 ----------
+    # ---------- R2 / 本地打包 ----------
     def upload_image(self, data: bytes, key: str, content_type: str = "image/webp") -> str | None:
-        """上传 R2，返回公开 URL。没有凭据时返回 None 并把文件存到 out/images/。"""
-        if self.dry or not S.r2_ready:
-            self._save_local(key, data)
-            return None
+        """存图。IMG_MODE=local 时打包进 site/public（返回站内相对 URL）；
+        IMG_MODE=r2 时上传 R2（返回公开绝对 URL）。无 R2 凭据时自动降级 local。"""
+        effective = S.img_mode
+        if effective == "r2" and not S.r2_ready:
+            effective = "local"
+        if self.dry or effective != "r2":
+            path = os.path.join(S.site_public_dir, *key.split("/"))
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "wb") as fh:
+                fh.write(data)
+            self.stats["images_bundled"] = self.stats.get("images_bundled", 0) + 1
+            return f"/img/{key}"
         import boto3
         s3 = boto3.client(
             "s3",
@@ -73,13 +81,6 @@ class Stores:
                       ContentType=content_type, CacheControl="public, max-age=31536000")
         self.stats["images_uploaded"] += 1
         return f"{S.r2_public_base}/{key}"
-
-    @staticmethod
-    def _save_local(key: str, data: bytes) -> None:
-        path = os.path.join(out_dir(), "images", key.replace("/", "__"))
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "wb") as fh:
-            fh.write(data)
 
     @property
     def summary(self) -> str:

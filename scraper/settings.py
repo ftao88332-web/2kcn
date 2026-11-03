@@ -16,6 +16,12 @@ class Settings:
     r2_bucket: str | None = os.environ.get("R2_BUCKET") or None
     # 公开访问域名（R2 公开桶或你的自定义图床域），形如 https://img.example.com
     r2_public_base: str | None = (os.environ.get("R2_PUBLIC_BASE") or "").rstrip("/") or None
+    # IMG_MODE=local：图片直接打包进站点 site/public/img/...（零账号依赖，任何时候都能被人打开看到）
+    # IMG_MODE=r2  ：上传 R2（需要全部 R2_* 环境变量）
+    img_mode: str = os.environ.get("IMG_MODE", "local")
+    site_public_dir: str = os.path.abspath(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "site", "public", "img")
+    )
 
     # 运行参数
     base: str = "https://2kdb.net"

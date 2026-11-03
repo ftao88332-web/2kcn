@@ -12,6 +12,10 @@ export type IndexCard = {
   image: string | null;
   mt: number | null;
   auctionable: boolean | null;
+  attrs?: Record<string, number | null> | null;
+  height_cm?: number | null;
+  weight_kg?: number | null;
+  wingspan_cm?: number | null;
 };
 
 export type DetailCard = {

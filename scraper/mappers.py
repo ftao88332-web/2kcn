@@ -99,4 +99,9 @@ def index_row(row: dict[str, Any]) -> dict[str, Any]:
         "image": row.get("image_url"),
         "mt": market.get("mt"),
         "auctionable": market.get("is_auctionable"),
+        # 换代/全量数据大后可改为 Supabase 拉取；现阶段随索引打包保证零依赖可看
+        "attrs": row.get("attrs"),
+        "height_cm": row.get("height_cm"),
+        "weight_kg": row.get("weight_kg"),
+        "wingspan_cm": row.get("wingspan_cm"),
     }
