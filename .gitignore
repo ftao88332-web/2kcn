@@ -22,3 +22,4 @@ _probe/
 
 .env
 _workflows_local/
+.gp-snap/
