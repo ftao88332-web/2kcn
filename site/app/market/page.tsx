@@ -5,7 +5,7 @@ import { ovrColor } from "@/lib/format";
 
 /** 行情总览：静态索引卡片按 MT 排序成交投榜雏形（涨跌幅要等快照数据攒足后接入 Supabase 聚合查询） */
 export default function MarketPage() {
-  const tracked = (cards as IndexCard[])
+  const tracked = (cards as unknown as IndexCard[])
     .filter((c) => c.mt != null)
     .sort((a, b) => (b.mt ?? 0) - (a.mt ?? 0))
     .slice(0, 30);

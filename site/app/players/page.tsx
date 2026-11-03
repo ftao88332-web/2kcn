@@ -14,7 +14,7 @@ export default function PlayersPage() {
 
   const list = useMemo(() => {
     const kw = q.trim().toLowerCase();
-    return (cards as IndexCard[])
+    return (cards as unknown as IndexCard[])
       .filter((c) => (ver === "全部" ? true : c.version === ver))
       .filter((c) => (c.overall ?? 0) >= minOvr)
       .filter((c) =>

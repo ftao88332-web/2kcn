@@ -4,7 +4,7 @@ import { IndexCard } from "@/lib/types";
 import CardTile from "@/components/card-tile";
 
 export default function Home() {
-  const list = (cards as IndexCard[]).slice(0, 12);
+  const list = (cards as unknown as IndexCard[]).slice(0, 12);
   return (
     <div className="space-y-8">
       <section className="rounded-2xl border border-court-700 bg-court-800 p-6">
