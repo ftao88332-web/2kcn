@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
+.next/
+site/out/
+site/.env
+site/.env.local
+
+# 抓取运行时产物（out/cards_full.json 与 out/known.json 需要提交，其余忽略）
+scraper/out/images/
+scraper/out/sitemap_cache/
+scraper/out/tmp/
+*.log
+
+# 探针脚本（开发草稿）
+_probe/
+
+.env
