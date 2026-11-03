@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # 发布：site → GitHub Pages(gh-pages 分支)。用法：bash scripts/publish.sh
+git add -A && git commit -q --allow-empty -m "sync: publish 自动提交" 2>/dev/null || true
 set -e
 cd "$(dirname "$0")/.."
 
