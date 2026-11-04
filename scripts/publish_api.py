@@ -23,6 +23,8 @@ def call(client: httpx.Client, method: str, path: str, json_body: dict | None = 
     r = client.request(method, f"{API}{path}", json=json_body, timeout=60)
     if r.status_code >= 500 or r.status_code in (403, 408, 429):
         raise RuntimeError(f"{r.status_code} {r.text[:200]}")
+    if r.status_code >= 400:
+        print(f"[{r.status_code}] {path} -> {r.text[:400]}")
     r.raise_for_status()
     return r.json() if r.text else None
 
@@ -114,7 +116,16 @@ def main() -> int:
             print("没有任何文件可提交，退出")
             return 1
 
-        tree = call(client, "POST", "/git/trees", {"tree": tree_items})
+        # 大量新 blob 刚传完时，GitHub 对象库有秒级可见性延迟 → 422 需重试
+        for attempt in range(6):
+            try:
+                tree = call(client, "POST", "/git/trees", {"tree": tree_items})
+                break
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code != 422 or attempt == 5:
+                    raise
+                print(f"[warn] tree 422（blob 可见性延迟），第 {attempt + 1} 次重试…")
+                time.sleep(4 + 2 * attempt)
         commit = call(client, "POST", "/git/commits",
                       {"message": f"publish: {time.strftime('%F %T')} (api)",
                        "tree": tree["sha"], "parents": [main_sha]})
