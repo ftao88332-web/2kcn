@@ -1,55 +1,47 @@
-"""把 2kdb 原始卡片对象映射成数据库行 + 站点索引行。
-
-2kdb 的 flight 对象是"扁平"的：身份、属性、徽章、速度区、市场字段混在同一个字典里。
-分桶策略：
-  - hz_ 前缀    → hotzones
-  - market 词表 → market（mt / vc / salary / is_auctionable / upgrades / logo_id）
-  - 徽章词表（fields.json 里维护，可空）→ badges
-  - 其余        → attrs（MVP 默认全放这里，UI 按 attrs 展示）
-"""
-import json
-import os
+"""把 2kdb 原始卡片对象映射成数据库行 + 站点索引行（v2：徽章/倾向/动画独立分桶）。"""
 import datetime as dt
+import os
 from typing import Any
 
-IDENT_KEYS = {"relationId", "playerId", "name", "nickname", "version", "date",
-              "updatedAt", "college", "jersey", "collection", "theme", "team",
-              "tier", "overall", "off_overall", "def_overall", "position",
-              "secondary_position", "height", "wingspan", "weight", "plays",
-              "shoe", "dominant_hand", "dominant_dunk_hand"}
-MARKET_KEYS = {"mt", "salary", "vc", "is_auctionable", "upgrades", "logo_id"}
-
-_FIELDS_PATH = os.path.join(os.path.dirname(__file__), "fields.json")
-try:
-    with open(_FIELDS_PATH, "r", encoding="utf-8") as fh:
-        _fields = json.load(fh)
-    BADGE_SLUGS: set[str] = set(_fields.get("badge_slugs", []))
-except FileNotFoundError:
-    BADGE_SLUGS = set()
+from .fields import (AGG_KEYS, ATTR_GROUPS, BADGE_CN, IDENT_KEYS, MARKET_KEYS, classify)
 
 
 def card_row(raw: dict[str, Any], source_url: str, image_url: str | None) -> dict[str, Any]:
-    """原始 player 对象 → Supabase cards 行"""
+    """原始 player 对象 → Supabase cards 行（字段 v2）"""
     attrs: dict[str, Any] = {}
     badges: dict[str, Any] = {}
+    tendencies: dict[str, Any] = {}
+    animations: dict[str, Any] = {}
     hotzones: dict[str, Any] = {}
     market: dict[str, Any] = {}
-    stats: dict[str, Any] = {}
 
     for key, val in raw.items():
         k = str(key)
         if k in IDENT_KEYS:
             continue
-        if k.startswith("hz_"):
-            hotzones[k] = val
-        elif k in MARKET_KEYS:
+        if k in MARKET_KEYS:
             market[k] = val
-        elif k in BADGE_SLUGS:
-            badges[k] = val
-        elif isinstance(val, dict):
-            stats[k] = val
-        else:
+            continue
+        kind = classify(k, val)
+        if kind == "attr":
             attrs[k] = val
+        elif kind == "badge":
+            badges[k] = val
+        elif kind == "tendency":
+            tendencies[k] = val
+        elif kind == "animation":
+            animations[k] = val
+        elif kind == "hotzone":
+            hotzones[k] = val
+        elif kind == "agg":
+            market[k] = val  # 汇总计数放 market 侧，不算业务属性
+        else:
+            market[k] = val
+
+    # 徽章级数值换算：0/None=无，1..5=铜/银/金/名人堂/传奇
+    owned = {bk: v for bk, v in badges.items() if isinstance(v, int) and v > 0}
+    market["total_badges"] = len(owned)
+    market["total_hof"] = sum(1 for v in owned.values() if v >= 4)
 
     return {
         "id": raw["relationId"],
@@ -74,17 +66,29 @@ def card_row(raw: dict[str, Any], source_url: str, image_url: str | None) -> dic
         "image_url": image_url,
         "attrs": attrs,
         "badges": badges,
+        "tendencies": tendencies,
+        "animations": animations,
         "hotzones": hotzones,
-        "stats": stats,
+        "stats": None,
         "market": market,
         "source_url": source_url,
         "parsed_at": dt.datetime.now(dt.timezone.utc).isoformat(),
     }
 
 
+def badge_label(slug: str) -> tuple[str, str]:
+    """slug → (中文名或美化英文, 是否中文)"""
+    cn = BADGE_CN.get(slug)
+    if cn:
+        return cn, "zh"
+    pretty = slug.replace("_", " ").title()
+    return pretty, "en"
+
+
 def index_row(row: dict[str, Any]) -> dict[str, Any]:
-    """cards 行 → site/data/cards.json 精简行（列表/搜索/首页用）"""
+    """cards 行 → site/data/cards.json 精简行（列表/搜索/详情兜底）"""
     market = row.get("market") or {}
+    owned = {k: v for k, v in (row.get("badges") or {}).items() if isinstance(v, int) and 0 < v <= 5}
     return {
         "id": row["id"],
         "playerId": row.get("player_id"),
@@ -99,9 +103,16 @@ def index_row(row: dict[str, Any]) -> dict[str, Any]:
         "image": row.get("image_url"),
         "mt": market.get("mt"),
         "auctionable": market.get("is_auctionable"),
-        # 换代/全量数据大后可改为 Supabase 拉取；现阶段随索引打包保证零依赖可看
         "attrs": row.get("attrs"),
+        "badges": {k: v for k, v in owned.items()},
+        "hotzones": row.get("hotzones") or None,
         "height_cm": row.get("height_cm"),
         "weight_kg": row.get("weight_kg"),
         "wingspan_cm": row.get("wingspan_cm"),
     }
+
+
+def public_dir() -> str:
+    base = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "site", "public", "data")
+    os.makedirs(base, exist_ok=True)
+    return base

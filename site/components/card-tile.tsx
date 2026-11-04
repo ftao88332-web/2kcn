@@ -1,45 +1,43 @@
 import Link from "next/link";
 import { IndexCard } from "@/lib/types";
-import { ovrColor } from "@/lib/format";
 import { withBase } from "@/lib/base";
+import { rarity } from "@/lib/i18n";
 
 export default function CardTile({ card }: { card: IndexCard }) {
+  const rar = rarity(card.overall);
   return (
     <Link
       href={`/player/${card.id}/`}
-      className="group rounded-xl border border-court-700 bg-court-800 p-3 transition hover:border-accent/60"
+      className={`group overflow-hidden rounded-xl border bg-court-800 transition hover:translate-y-[-2px] hover:brightness-110 ${rar.border}`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <p className={`text-3xl font-black leading-none ${ovrColor(card.overall)}`}>
-            {card.overall ?? "?"}
-          </p>
-          <p className="mt-1 text-[11px] uppercase tracking-wider text-slate-500">
-            {card.version} · {card.position ?? "?"}
-            {card.sec ? `/${card.sec}` : ""}
-          </p>
-        </div>
+      <div className="relative">
         {card.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={withBase(card.image)}
             alt={card.name}
             loading="lazy"
-            className="h-20 w-16 rounded object-cover"
+            className="h-40 w-full object-cover object-top"
           />
         ) : (
-          <div className="grid h-20 w-16 place-items-center rounded bg-court-700 text-xs text-slate-500">
-            无图
+          <div className="grid h-40 w-full place-items-center bg-court-700 text-xs text-slate-500">暂无卡面</div>
+        )}
+        <div className="absolute left-2 top-2 rounded px-1.5 py-0.5 text-lg font-black leading-none bg-court-900/70">
+          <span className={rar.text}>{card.overall ?? "?"}</span>
+          <span className="ml-1 text-[10px] font-bold text-slate-300">{card.position ?? ""}</span>
+        </div>
+        {card.mt != null && (
+          <div className="absolute right-2 top-2 rounded bg-court-900/80 px-1.5 py-0.5 text-[10px] font-mono text-accent">
+            {card.mt.toLocaleString("en-US")}
           </div>
         )}
       </div>
-      <p className="mt-2 truncate font-semibold text-slate-100 group-hover:text-accent">
-        {card.name}
-      </p>
-      <p className="truncate text-xs text-slate-400">
-        {card.theme ?? card.collection ?? ""}
-        {card.mt != null ? ` · ${card.mt.toLocaleString()} MT` : ""}
-      </p>
+      <div className="p-3">
+        <p className="truncate font-bold text-white group-hover:text-accent">{card.name}</p>
+        <p className="truncate text-[11px] text-slate-400">
+          {card.theme ?? card.collection ?? ""} <span className="text-slate-600">{card.version}</span>
+        </p>
+      </div>
     </Link>
   );
 }

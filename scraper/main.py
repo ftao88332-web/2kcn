@@ -157,6 +157,67 @@ def cmd_index(_args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_rescrape(args: argparse.Namespace) -> int:
+    """旧数据池没有分开的徽章/倾向桶 → 重新抓页面用当前解析器重建（保留图与来源）。"""
+    client = Client()
+    pool = load_full()
+    ids = sorted(pool.keys(), key=lambda s: int(s), reverse=True)
+    print(f"重抓 {len(ids)} 张卡（间隔 {args.delay}s）…")
+    ok = fail = 0
+    for n, cid in enumerate(ids, 1):
+        old = pool[cid]
+        url = old.get("source_url") or f"{S.base}/player/{cid}"
+        try:
+            html = client.get(url).text
+            parsed = parse_card(html)
+            row = card_row(parsed["card"], source_url=url, image_url=old.get("image_url"))
+            pool[str(row["id"])] = row
+            ok += 1
+        except Exception as exc:
+            fail += 1
+            print(f"[fail] {cid}: {exc}")
+        if n % 25 == 0:
+            print(f"  … {n}/{len(ids)}")
+        time.sleep(args.delay)
+    save_full(pool)
+    build_site_index(pool)
+    print(f"rescrape 完成：ok {ok} fail {fail}")
+    return 0
+
+
+def cmd_market(args: argparse.Namespace) -> int:
+    from . import market as mkt
+    client = Client()
+    stores = Stores()
+    overview = mkt.fetch_market_overview(client)
+    active: list[dict] = []
+    active_ids: list[int] = []
+    if overview:
+        for item in overview.get("mostActive") or []:
+            p = item.get("player") or {}
+            active.append({
+                "id": p.get("relationId"), "name": p.get("name"),
+                "ovr": p.get("overall"), "theme": p.get("theme"),
+                "camp": p.get("collection"),
+                "price": item.get("averagePrice"), "sales": item.get("salesCount"),
+                "volume": item.get("totalVolume"), "last": (item.get("lastSaleAt") or "")[:16],
+            })
+            active_ids.append(p.get("relationId"))
+
+    pool = load_full()
+    tracked = []
+    if os.path.exists(TRACKED_PATH):
+        with open(TRACKED_PATH, "r", encoding="utf-8") as fh:
+            raw_t = json.load(fh)
+        tracked = [int(i) for i in (raw_t.get("ids") if isinstance(raw_t, dict) else raw_t)]
+    hot = [int(k) for k, v in pool.items() if (v.get("overall") or 0) >= 90]
+    ids = list(dict.fromkeys([i for i in active_ids if i] + tracked + hot))
+    print(f"本轮实时价覆盖 {len(ids)} 张（active {len(active_ids)} / tracked {len(tracked)} / hot {len(hot)}）")
+    prices = mkt.snapshot(client, ids, stores)
+    mkt.write_site_prices(prices, active)
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(prog="scraper")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -173,6 +234,13 @@ def main() -> int:
 
     p_index = sub.add_parser("index", help="重建 site/data/cards.json")
     p_index.set_defaults(func=cmd_index)
+
+    p_resc = sub.add_parser("rescrape", help="用当前解析器重抓全部已入库卡（分桶升级时用）")
+    p_resc.add_argument("--delay", type=float, default=0.55)
+    p_resc.set_defaults(func=cmd_rescrape)
+
+    p_market = sub.add_parser("market", help="实时行情快照 → prices.json + price_snapshots")
+    p_market.set_defaults(func=cmd_market)
 
     args = ap.parse_args()
     rc = args.func(args)

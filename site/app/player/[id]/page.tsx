@@ -26,5 +26,5 @@ export default function PlayerPage({ params }: { params: { id: string } }) {
       </p>
     );
   }
-  return <PlayerDetail id={params.id} fallback={card} />;
+  return <PlayerDetail card={card} />;
 }

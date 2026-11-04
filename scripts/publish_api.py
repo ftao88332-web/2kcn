@@ -27,6 +27,15 @@ def call(client: httpx.Client, method: str, path: str, json_body: dict | None = 
     return r.json() if r.text else None
 
 
+def blob_sha(data: bytes) -> str:
+    """标准 git blob SHA1：sha1('blob <size>\\0' + content)。用于和远端树比对做增量。"""
+    import hashlib
+    h = hashlib.sha1()
+    h.update(b"blob %d\x00" % len(data))
+    h.update(data)
+    return h.hexdigest()
+
+
 def main() -> int:
     out_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "site", "out")
@@ -47,17 +56,36 @@ def main() -> int:
         main_sha = call(client, "GET", "/git/ref/heads/main")["object"]["sha"]
         print("main HEAD:", main_sha[:10])
 
+        # ---- 增量：拉 gh-pages 现有树，本地算 sha，没变的直接复用 ----
+        remote: dict[str, str] = {}
+        try:
+            ref = call(client, "GET", "/git/ref/heads/gh-pages")
+            tree_sha = ref["object"]["sha"]
+            t = call(client, "GET", f"/git/trees/{tree_sha}?recursive=1")
+            if not t.get("truncated"):
+                remote = {i["path"]: i["sha"] for i in t.get("tree", [])
+                          if i.get("type") == "blob"}
+                print(f"gh-pages 现有 {len(remote)} 个文件")
+        except Exception as exc:
+            print(f"[warn] 读 gh-pages 树失败（将全量上传）: {exc}")
+
         def blob_upload(rel: str) -> tuple[str, str]:
             if rel == ".nojekyll":
                 data = b""
             else:
                 with open(os.path.join(out_dir, rel), "rb") as fh:
                     data = fh.read()
+            want = blob_sha(data)
+            if remote.get(rel) == want:  # 远端已有同内容 blob，直接复用
+                return rel, want
             body = {"content": base64.b64encode(data).decode(), "encoding": "base64"}
             attempt = 0
             while True:
                 try:
-                    return rel, call(client, "POST", "/git/blobs", body)["sha"]
+                    got = call(client, "POST", "/git/blobs", body)["sha"]
+                    if got != want:  # 保险：用远端为准仍可引用
+                        got = want if remote.get(rel) == want else got
+                    return rel, got
                 except Exception as exc:
                     attempt += 1
                     if attempt > 5:
@@ -65,15 +93,26 @@ def main() -> int:
                     time.sleep(2 * attempt)
 
         tree_items: list[dict] = []
-        with ThreadPoolExecutor(max_workers=6) as pool:
+        skipped = uploaded = 0
+        with ThreadPoolExecutor(max_workers=8) as pool:
             futs = [pool.submit(blob_upload, f) for f in files]
-            done = 0
             for fut in as_completed(futs):
-                rel, sha = fut.result()
+                try:
+                    rel, sha = fut.result()
+                except Exception as exc:
+                    print(f"[fail] blob: {exc}")
+                    continue
                 tree_items.append({"path": rel, "mode": "100644", "type": "blob", "sha": sha})
-                done += 1
-                if done % 25 == 0:
-                    print(f"  blobs {done}/{len(files)}")
+                if rel in remote and remote[rel] == sha:
+                    skipped += 1
+                else:
+                    uploaded += 1
+                    if uploaded % 50 == 0:
+                        print(f"  uploaded {uploaded} …")
+        print(f"blob 复用 {skipped} / 上传 {uploaded} / 缺失 {len(files) - len(tree_items)}")
+        if not tree_items:
+            print("没有任何文件可提交，退出")
+            return 1
 
         tree = call(client, "POST", "/git/trees", {"tree": tree_items})
         commit = call(client, "POST", "/git/commits",
