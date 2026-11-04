@@ -1,38 +1,45 @@
 import { ATTR_GROUPS, attrCn } from "@/lib/i18n";
 
-/** 分组属性条：值色带（≥97 紫 / ≥92 绿 / ≥85 黄绿 / ≥75 灰 / <75 暗红） */
+/** 数值条配色：数值越高越接近主色（不抢眼，只表意） */
 function barColor(v: number): string {
-  if (v >= 97) return "bg-purple-400";
-  if (v >= 92) return "bg-emerald-400";
-  if (v >= 85) return "bg-lime-400";
-  if (v >= 75) return "bg-yellow-500/80";
-  return "bg-rose-500/70";
+  if (v >= 95) return "bg-accent";
+  if (v >= 90) return "bg-accent/70";
+  if (v >= 80) return "bg-accent/40";
+  if (v >= 70) return "bg-muted/40";
+  return "bg-muted/20";
+}
+
+/** 高数值文字：95+ 主色加粗，90+ 主色 */
+function numColor(v: number): string {
+  if (v >= 95) return "text-accent font-bold";
+  if (v >= 90) return "text-accent";
+  return "text-ink/90";
 }
 
 export default function AttrsGroups({ attrs }: { attrs: Record<string, unknown> | null | undefined }) {
   if (!attrs || !Object.keys(attrs).length) {
-    return <p className="text-sm text-slate-500">属性数据暂缺。</p>;
+    return <p className="text-sm text-muted">属性数据暂缺。</p>;
   }
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-x-8 gap-y-6 md:grid-cols-2 lg:grid-cols-3">
       {ATTR_GROUPS.map((g) => {
         const rows = g.keys.filter((k) => attrs[k] != null);
         if (!rows.length) return null;
         return (
-          <div key={g.en} className="rounded-xl border border-court-700 bg-court-800 p-4">
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-accent/90">
-              {g.cn} <span className="text-slate-600">{g.en}</span>
+          <div key={g.en}>
+            <p className="mb-2.5 border-b border-court-600 pb-1.5 text-[11px] font-bold uppercase tracking-widest text-muted">
+              {g.cn} <span className="opacity-60">{g.en}</span>
             </p>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {rows.map((k) => {
                 const v = Number(attrs[k]);
                 return (
-                  <div key={k} className="flex items-center gap-2">
-                    <span className="w-20 shrink-0 text-xs text-slate-400">{attrCn(k)}</span>
-                    <div className="h-2 min-w-0 flex-1 rounded-full bg-court-700">
-                      <div className={`h-2 rounded-full ${barColor(v)}`} style={{ width: `${Math.min(100, v)}%` }} />
+                  <div key={k} className="flex items-center gap-2.5">
+                    <span className="w-20 shrink-0 text-xs text-muted">{attrCn(k)}</span>
+                    <div className="h-1.5 min-w-0 flex-1 rounded-full bg-court-700">
+                      <div className={`h-1.5 rounded-full ${barColor(v)}`} style={{ width: `${Math.min(100, v)}%` }} />
                     </div>
-                    <span className="w-7 shrink-0 text-right text-xs font-bold text-slate-100">{v}</span>
+                    <span className={`w-7 shrink-0 text-right text-xs ${numColor(v)}`}>{v}</span>
                   </div>
                 );
               })}

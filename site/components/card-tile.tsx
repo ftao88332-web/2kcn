@@ -27,7 +27,7 @@ export default function CardTile({ card }: { card: IndexCard }) {
           <span className="ml-1 text-[10px] font-bold text-slate-300">{card.position ?? ""}</span>
         </div>
         {card.mt != null && (
-          <div className="absolute right-2 top-2 rounded bg-court-900/80 px-1.5 py-0.5 text-[10px] font-mono text-accent">
+          <div className="absolute right-2 top-2 rounded bg-court-900/80 px-1.5 py-0.5 text-[10px] font-mono text-gain">
             {card.mt.toLocaleString("en-US")}
           </div>
         )}

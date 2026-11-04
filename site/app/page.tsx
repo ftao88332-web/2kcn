@@ -17,7 +17,7 @@ export default function Home() {
           每轮行情由脚本自动更新。
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
-          <Link href="/players/" className="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-court-900 hover:brightness-110">
+          <Link href="/players/" className="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-white transition-colors hover:brightness-110">
             浏览卡库
           </Link>
           <Link href="/market/" className="rounded-lg border border-court-600 px-4 py-2 text-sm text-slate-200 hover:border-accent/60">

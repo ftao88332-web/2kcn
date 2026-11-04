@@ -7,14 +7,10 @@
 }
 
 body {
-  @apply bg-court-900 text-slate-200 antialiased;
-  font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+  @apply bg-court-900 text-ink antialiased;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: #333b52; border-radius: 8px; }
+::-webkit-scrollbar-thumb { background: #2d3242; border-radius: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-
-@media (prefers-reduced-motion: no-preference) {
-  .animate-pulse { animation-duration: 1.5s; }
-}

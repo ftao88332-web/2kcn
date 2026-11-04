@@ -48,7 +48,7 @@ export default function MarketBoard({ limit = 10 }: { limit?: number }) {
                     </Link>
                   </td>
                   <td className="px-3 py-2 text-xs text-slate-400">{a.theme ?? a.camp ?? ""}</td>
-                  <td className="px-2 py-2 text-right font-mono text-accent">{fmtMt(a.price)}</td>
+                  <td className="px-2 py-2 text-right font-mono text-gain">{fmtMt(a.price)}</td>
                   <td className="hidden px-2 py-2 text-right text-slate-400 sm:table-cell">{a.sales?.toLocaleString("en-US") ?? "-"}</td>
                   <td className="hidden px-3 py-2 text-right text-slate-500 md:table-cell">{relativeBy(a.last)}</td>
                 </tr>
