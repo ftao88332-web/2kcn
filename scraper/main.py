@@ -38,13 +38,22 @@ def save_full(pool: dict[str, dict]) -> None:
         json.dump(pool, fh, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
 
 
+INDEX_FIELDS = ("id", "name", "version", "overall", "position", "team",
+                "theme", "collection", "image", "mt")
+
+
 def build_site_index(pool: dict[str, dict]) -> None:
     rows = (index_row(r) for r in pool.values())
     rows = sorted(rows, key=lambda r: (r["version"] or "", -(r["overall"] or 0), r["name"] or ""))
     os.makedirs(os.path.dirname(SITE_DATA), exist_ok=True)
     with open(SITE_DATA, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(rows, fh, ensure_ascii=False, separators=(",", ":"))
-    print(f"site/data/cards.json 已重建：{len(pool)} 行")
+    # 轻量索引：卡库列表是客户端组件，只带展示字段，避免把属性/徽章打进浏览器包
+    lean = [{k: r.get(k) for k in INDEX_FIELDS} for r in rows]
+    lean_path = os.path.join(os.path.dirname(SITE_DATA), "cards_index.json")
+    with open(lean_path, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(lean, fh, ensure_ascii=False, separators=(",", ":"))
+    print(f"site/data/cards.json 已重建：{len(rows)} 行（轻量索引 {len(lean)} 行）")
 
 
 def sitemap_ids(client: Client) -> list[str]:
@@ -157,6 +166,90 @@ def cmd_index(_args: argparse.Namespace) -> int:
     return 0
 
 
+TRPC = f"{S.base}/api/trpc"
+COLS_27 = ["average_price_playstation", "average_price_xbox", "badges_summary", "date",
+           "height", "overall", "position", "weight", "wingspan"]
+
+
+def fetch_players_table(pages: list[int], version: str = "27",
+                        batch: int = 10) -> list[dict]:
+    """按页拉 players.getPlayersForTable（50/页），返回去重后的全部卡基础行。"""
+    import urllib.parse
+    out: dict[int, dict] = {}
+    http = Client()
+    for i in range(0, len(pages), batch):
+        chunk = pages[i:i + batch]
+        inputs = {str(k): {"json": {"page": p, "name": None, "f": None, "match": None,
+                                    "sort": None, "desc": None, "cols": COLS_27,
+                                    "version": version}}
+                  for k, p in enumerate(chunk)}
+        procs = ",".join(["players.getPlayersForTable"] * len(chunk))
+        url = (f"{TRPC}/{procs}?batch=1&input="
+               + urllib.parse.quote(json.dumps(inputs, separators=(",", ":")), safe=""))
+        rows = http.get(url).json()
+        for item in rows:
+            data = (item.get("result") or {}).get("data", {}).get("json") or {}
+            for p in data.get("players") or []:
+                out[p["relationId"]] = p
+    return list(out.values())
+
+
+def build_index_from_table(rows: list[dict], image_map: dict[int, str]) -> list[dict]:
+    """列表接口行 → site 索引行（无属性/徽章明细，覆盖到全部赛季卡）。"""
+    idx = []
+    for p in rows:
+        bid = p.get("relationId")
+        idx.append({
+            "id": bid,
+            "playerId": p.get("playerId"),
+            "name": p.get("name"),
+            "version": f"2k{p.get('version') or ''}",
+            "overall": p.get("overall"),
+            "position": p.get("position"),
+            "sec": None,
+            "team": p.get("team"),
+            "theme": p.get("theme"),
+            "collection": p.get("collection"),
+            "image": image_map.get(bid) if image_map else None,
+            "mt": None,
+            "auctionable": p.get("is_auctionable"),
+            "attrs": None,
+            "badges": None,
+            "hotzones": None,
+            "height_cm": p.get("height"),
+            "weight_kg": p.get("weight"),
+            "wingspan_cm": p.get("wingspan"),
+        })
+    return idx
+
+
+def cmd_full27(args: argparse.Namespace) -> int:
+    """全量 2K27：列表接口枚举全部卡 → 补抓缺失详情+图 → 重建索引。支持断点续跑。"""
+    rows = fetch_players_table(list(range(1, 27)))
+    print(f"2K27 列表接口返回 {len(rows)} 张卡")
+    pool = load_full()
+    missing = [r for r in rows if str(r["relationId"]) not in pool]
+    print(f"库内已有 {len(pool)} 张，需补抓 {len(missing)} 张（限 {args.limit}）")
+    stores = Stores()
+    done = 0
+    for r in missing[: args.limit]:
+        cid = str(r["relationId"])
+        row = fetch_and_parse(Client(), cid, stores)
+        if row:
+            pool[cid] = row
+            done += 1
+            if done % 20 == 0:
+                save_full(pool)
+                print(f"  … {done}/{len(missing)}")
+        else:
+            print(f"[fail] {cid}")
+        time.sleep(max(0.0, args.delay))
+    save_full(pool)
+    build_site_index(pool)
+    print(f"full27 完成：本轮新增 {done} 张，库内共 {len(pool)} 张")
+    return 0
+
+
 def cmd_rescrape(args: argparse.Namespace) -> int:
     """旧数据池没有分开的徽章/倾向桶 → 重新抓页面用当前解析器重建（保留图与来源）。"""
     client = Client()
@@ -238,6 +331,11 @@ def main() -> int:
     p_resc = sub.add_parser("rescrape", help="用当前解析器重抓全部已入库卡（分桶升级时用）")
     p_resc.add_argument("--delay", type=float, default=0.55)
     p_resc.set_defaults(func=cmd_rescrape)
+
+    p_full = sub.add_parser("full27", help="全量 2K27：列表枚举 + 补抓详情/图（断点续跑）")
+    p_full.add_argument("--limit", type=int, default=5000)
+    p_full.add_argument("--delay", type=float, default=0.6)
+    p_full.set_defaults(func=cmd_full27)
 
     p_market = sub.add_parser("market", help="实时行情快照 → prices.json + price_snapshots")
     p_market.set_defaults(func=cmd_market)

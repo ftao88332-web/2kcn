@@ -8,6 +8,7 @@ venv/
 node_modules/
 .next/
 site/out/
+site/preview/
 site/.env
 site/.env.local
 

@@ -45,6 +45,9 @@ jobs:
       - name: 每日抓取（新卡 + tracked 快照）
         run: python -m scraper.main daily --new-limit "${{ github.event.inputs.new_limit || '40' }}"
 
+      - name: 补齐 2K27 全量卡（列表接口枚举，断点续跑）
+        run: python -m scraper.main full27 --limit 300 --delay 0.5
+
       - name: 实时行情（tRPC 活跃卡 + 高总评 → prices.json）
         run: python -m scraper.main market
 
