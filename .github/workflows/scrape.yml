@@ -51,17 +51,17 @@ jobs:
       - name: 实时行情（tRPC 活跃卡 + 高总评 → prices.json）
         run: python -m scraper.main market
 
-      - name: 提交数据回仓库（cards_full.json / cards.json / prices.json）
+      - name: 提交数据回仓库（cards_full.json / cards.json / cards_index.json / prices.json）
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "data(t): daily sync ${{ github.run_id }}"
-          file_pattern: "scraper/out/cards_full.json site/data/cards.json site/public/data/prices.json"
+          file_pattern: "scraper/out/cards_full.json site/data/cards.json site/data/cards_index.json site/public/data/prices.json site/public/img"
 
   # GITHUB_TOKEN 的 push 不触发其他 workflow，所以部署作为同一 run 的下游 job
   deploy:
     needs: daily
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       NEXT_PUBLIC_BASE_PATH: /2kcn
     steps:
