@@ -1,0 +1,55 @@
+name: scrape
+
+on:
+  schedule:
+    # UTC 时间；北京时间 = UTC+8 → 10:20 与 22:20 各跑一次
+    - cron: "20 2 * * *"
+    - cron: "20 14 * * *"
+  workflow_dispatch:
+    inputs:
+      new_limit:
+        description: "一次最多解析多少张新卡（首跑建议 2000）"
+        default: "40"
+
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      R2_PUBLIC_BASE: ${{ secrets.R2_PUBLIC_BASE }}
+      SCRAPE_DELAY: "1.2"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 安装依赖
+        run: pip install -r scraper/requirements.txt
+
+      - name: 每日抓取（新卡 + tracked 快照）
+        run: python -m scraper.main daily --new-limit "${{ github.event.inputs.new_limit || '40' }}"
+
+      - name: 实时行情（tRPC 活跃卡 + 高总评 → prices.json）
+        run: python -m scraper.main market
+
+      - name: 提交数据回仓库（cards_full.json / cards.json / prices.json）
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "data(t): daily sync ${{ github.run_id }}"
+          file_pattern: "scraper/out/cards_full.json site/data/cards.json site/public/data/prices.json"
