@@ -39,13 +39,11 @@ jobs:
         run: npm run build
         working-directory: site
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: 增量发布 gh-pages（Git Data API）
+      - name: 发布到 gh-pages（git push，单次 pack，不受 API 限额影响）
         run: |
-          pip install "httpx>=0.27,<1.0"
-          python scripts/publish_api.py site/out
-        env:
-          GH_TOKEN: ${{ github.token }}
+          cd site/out
+          touch .nojekyll
+          git init -q -b gh-pages
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" commit -q -m "publish: $(date -u +%F_%T)"
+          git push --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" HEAD:gh-pages
