@@ -19,14 +19,31 @@ TOKEN = os.environ.get("GH_TOKEN", "")
 HDR = {"Authorization": f"Bearer {TOKEN}", "Accept": "application/vnd.github+json"}
 
 
-def call(client: httpx.Client, method: str, path: str, json_body: dict | None = None):
-    r = client.request(method, f"{API}{path}", json=json_body, timeout=60)
-    if r.status_code >= 500 or r.status_code in (403, 408, 429):
-        raise RuntimeError(f"{r.status_code} {r.text[:200]}")
-    if r.status_code >= 400:
-        print(f"[{r.status_code}] {path} -> {r.text[:400]}")
-    r.raise_for_status()
-    return r.json() if r.text else None
+def call(client: httpx.Client, method: str, path: str, json_body: dict | None = None,
+        retries: int = 5):
+    last: Exception | None = None
+    for attempt in range(retries):
+        r = client.request(method, f"{API}{path}", json=json_body, timeout=60)
+        if r.status_code == 422 and attempt < retries - 1:
+            # blob 刚传完时 GitHub 对象库有秒级可见性延迟 → 422 重试
+            print(f"[warn] {r.status_code} {path} -> {r.text[:120]}，第 {attempt + 1} 次重试…")
+            time.sleep(4 + 2 * attempt)
+            continue
+        if r.status_code >= 500 and attempt < retries - 1:
+            # GitHub API 偶发 5xx（502/503/504…）瞬时故障 → 退避重试
+            print(f"[warn] {r.status_code} {path} -> {r.text[:120]}，第 {attempt + 1} 次重试…")
+            time.sleep(6 + 3 * attempt)
+            continue
+        if r.status_code >= 400:
+            print(f"[{r.status_code}] {path} -> {r.text[:400]}")
+        last = None if r.status_code < 400 else RuntimeError(f"{r.status_code} {r.text[:200]}")
+        if last is not None:
+            break
+        r.raise_for_status()
+        return r.json() if r.text else None
+    if last is not None:
+        raise last
+    raise RuntimeError("unreachable")
 
 
 def blob_sha(data: bytes) -> str:
