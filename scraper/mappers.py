@@ -1,17 +1,15 @@
-"""把 2kdb 原始卡片对象映射成数据库行 + 站点索引行（v2：徽章/倾向/动画独立分桶）。"""
+"""把 2kdb 原始卡片对象映射成站点卡片行 + 索引行（属性/徽章/热区/市场分桶）。"""
 import datetime as dt
 import os
 from typing import Any
 
-from .fields import (AGG_KEYS, ATTR_GROUPS, BADGE_CN, IDENT_KEYS, MARKET_KEYS, classify)
+from .fields import AGG_KEYS, IDENT_KEYS, MARKET_KEYS, classify
 
 
 def card_row(raw: dict[str, Any], source_url: str, image_url: str | None) -> dict[str, Any]:
-    """原始 player 对象 → Supabase cards 行（字段 v2）"""
+    """原始 player 对象 → 站点卡片行（字段 v2）"""
     attrs: dict[str, Any] = {}
     badges: dict[str, Any] = {}
-    tendencies: dict[str, Any] = {}
-    animations: dict[str, Any] = {}
     hotzones: dict[str, Any] = {}
     market: dict[str, Any] = {}
 
@@ -27,12 +25,10 @@ def card_row(raw: dict[str, Any], source_url: str, image_url: str | None) -> dic
             attrs[k] = val
         elif kind == "badge":
             badges[k] = val
-        elif kind == "tendency":
-            tendencies[k] = val
-        elif kind == "animation":
-            animations[k] = val
         elif kind == "hotzone":
             hotzones[k] = val
+        elif kind in ("tendency", "animation"):
+            continue  # 站点不展示，不入库
         elif kind == "agg":
             market[k] = val  # 汇总计数放 market 侧，不算业务属性
         else:
@@ -66,23 +62,12 @@ def card_row(raw: dict[str, Any], source_url: str, image_url: str | None) -> dic
         "image_url": image_url,
         "attrs": attrs,
         "badges": badges,
-        "tendencies": tendencies,
-        "animations": animations,
         "hotzones": hotzones,
-        "stats": None,
         "market": market,
         "source_url": source_url,
         "parsed_at": dt.datetime.now(dt.timezone.utc).isoformat(),
     }
 
-
-def badge_label(slug: str) -> tuple[str, str]:
-    """slug → (中文名或美化英文, 是否中文)"""
-    cn = BADGE_CN.get(slug)
-    if cn:
-        return cn, "zh"
-    pretty = slug.replace("_", " ").title()
-    return pretty, "en"
 
 
 def index_row(row: dict[str, Any]) -> dict[str, Any]:

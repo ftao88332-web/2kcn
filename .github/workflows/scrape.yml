@@ -6,10 +6,6 @@ on:
     - cron: "20 2 * * *"
     - cron: "20 14 * * *"
   workflow_dispatch:
-    inputs:
-      new_limit:
-        description: "一次最多解析多少张新卡（首跑建议 2000）"
-        default: "40"
 
 concurrency:
   group: pages
@@ -23,13 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-      R2_BUCKET: ${{ secrets.R2_BUCKET }}
-      R2_PUBLIC_BASE: ${{ secrets.R2_PUBLIC_BASE }}
       SCRAPE_DELAY: "1.2"
     steps:
       - uses: actions/checkout@v4
@@ -41,9 +30,6 @@ jobs:
 
       - name: 安装依赖
         run: pip install -r scraper/requirements.txt
-
-      - name: 每日抓取（新卡 + tracked 快照）
-        run: python -m scraper.main daily --new-limit "${{ github.event.inputs.new_limit || '40' }}"
 
       - name: 补齐 2K27 全量卡（列表接口枚举，断点续跑）
         run: python -m scraper.main full27 --limit 300 --delay 0.5

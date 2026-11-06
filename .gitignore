@@ -11,6 +11,7 @@ site/out/
 site/preview/
 site/.env
 site/.env.local
+site/tsconfig.tsbuildinfo
 
 # 抓取运行时产物（out/cards_full.json 与 out/known.json 需要提交，其余忽略）
 scraper/out/images/

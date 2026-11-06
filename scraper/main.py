@@ -2,12 +2,12 @@
 
 用法：
   python -m scraper.main parse <本地html> [--save]      # 解析单卡，调试用；--save 进本地数据池+建索引
-  python -m scraper.main daily [--new-limit N]          # 每日任务：新卡解析 + tracked 行情快照
-  python -m scraper.main index                          # 由本地数据池重建 site/data/cards.json
-势：daily 结束后把 cards_full 提交回 git（workflow 负责），cards.json 保持同步。
+  python -m scraper.main full27 [--limit N]             # 枚举 2K27 全部卡，补抓详情/图（断点续跑）
+  python -m scraper.main market                         # 拉实时行情 → site/public/data/prices.json
+  python -m scraper.main index                          # 由本地数据池重建 site/data/*.json
+势：抓取结束后把 cards_full 提交回 git（workflow 负责），cards.json 保持同步。
 """
 import argparse
-import datetime as dt
 import json
 import os
 import sys
@@ -17,7 +17,7 @@ from .flight import parse_card, best_image
 from .http_client import Client
 from .mappers import card_row, index_row
 from .settings import S
-from .stores import Stores, out_dir
+from .stores import save_image, out_dir
 
 FULL_PATH = os.path.join(out_dir(), "cards_full.json")
 SITE_DATA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -56,24 +56,8 @@ def build_site_index(pool: dict[str, dict]) -> None:
     print(f"site/data/cards.json 已重建：{len(rows)} 行（轻量索引 {len(lean)} 行）")
 
 
-def sitemap_ids(client: Client) -> list[str]:
-    import re as _re
-    cache = os.path.join(out_dir(), "sitemap_cache")
-    os.makedirs(cache, exist_ok=True)
-    path = os.path.join(cache, "players-0.xml")
-    if os.path.exists(path) and time.time() - os.path.getmtime(path) < 86400:
-        xml = open(path, "r", encoding="utf-8").read()
-    else:
-        xml = client.get(f"{S.base}/sitemaps/sitemap/players-0.xml").text
-        with open(path, "w", encoding="utf-8") as fh:
-            fh.write(xml)
-    ids = _re.findall(r"2kdb\.net/player/(\d+)", xml)
-    return sorted(set(ids), key=lambda s: int(s), reverse=True)  # 新卡 id 大，优先
-
-
-def fetch_and_parse(client: Client, card_id: str, stores: Stores,
-                    snapshot: bool = False) -> dict | None:
-    """抓详情页 → 解析 → （可选）传图 → 返回 cards 行。失败返回 None。"""
+def fetch_and_parse(client: Client, card_id: str) -> dict | None:
+    """抓详情页 → 解析 → 下载卡面图 → 返回 cards 行。失败返回 None。"""
     url = f"{S.base}/player/{card_id}"
     try:
         html = client.get(url).text
@@ -83,28 +67,20 @@ def fetch_and_parse(client: Client, card_id: str, stores: Stores,
         return None
     raw = parsed["card"]
     row = card_row(raw, source_url=url, image_url=None)  # 先建行，用规范化后的版本号当图片目录
+    image_url = None
     img = best_image(parsed["images"])
     if img:
         try:
             data = client.get_binary(img)
             key_file = f"players/{row['version']}/{card_id}.webp"
-            image_url = stores.upload_image(data, key_file)
+            image_url = save_image(data, key_file)
         except Exception as exc:
             print(f"[warn] 图片失败 {card_id}: {exc}")
     row["image_url"] = image_url
-    stores.upsert("cards", [row], on_conflict="id")
-    if snapshot:
-        today = dt.date.today().isoformat()
-        stores.upsert("price_snapshots",
-                      [{"card_id": row["id"], "ts": today, "mt": (row["market"] or {}).get("mt"),
-                        "auctionable": (row["market"] or {}).get("is_auctionable"),
-                        "raw": {"ovr": row["overall"], "theme": row["theme"]}}],
-                      on_conflict="card_id,ts")
     return row
 
 
 def cmd_parse(args: argparse.Namespace) -> int:
-    stores = Stores(dry_run=not S.sb_ready)
     html = open(args.html_file, "r", encoding="utf-8").read()
     url_hint = getattr(args, "url", None) or "file://"
     parsed = parse_card(html)
@@ -120,47 +96,6 @@ def cmd_parse(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_daily(args: argparse.Namespace) -> int:
-    client = Client()
-    stores = Stores()
-    limit = args.new_limit
-    stats = {"new_ok": 0, "new_fail": 0, "snap_ok": 0, "snap_fail": 0}
-
-    ids = sitemap_ids(client)
-    pool = load_full()
-    new_ids = [i for i in ids if i not in pool][:limit]
-    print(f"sitemap 卡片总数 {len(ids)}；本次解析新卡 {len(new_ids)}")
-
-    for cid in new_ids:
-        row = fetch_and_parse(client, cid, stores)
-        if row:
-            pool[str(row["id"])] = row
-            stats["new_ok"] += 1
-        else:
-            stats["new_fail"] += 1
-
-    tracked = []
-    if os.path.exists(TRACKED_PATH):
-        with open(TRACKED_PATH, "r", encoding="utf-8") as fh:
-            raw_tracked = json.load(fh)
-        tracked = raw_tracked["ids"] if isinstance(raw_tracked, dict) else raw_tracked
-    print(f"tracked 行情快照 {len(tracked)} 张")
-    for cid in tracked:
-        row = fetch_and_parse(client, cid, stores, snapshot=True)
-        if row:
-            pool[str(row["id"])] = row
-            stats["snap_ok"] += 1
-        else:
-            stats["snap_fail"] += 1
-
-    save_full(pool)
-    build_site_index(pool)
-    stores.log_run("daily", stats["new_ok"] + stats["snap_ok"],
-                   stats["new_fail"] + stats["snap_fail"], stores.summary)
-    print("统计:", json.dumps(stats, ensure_ascii=False), stores.summary)
-    return 0
-
-
 def cmd_index(_args: argparse.Namespace) -> int:
     build_site_index(load_full())
     return 0
@@ -171,12 +106,11 @@ COLS_27 = ["average_price_playstation", "average_price_xbox", "badges_summary", 
            "height", "overall", "position", "weight", "wingspan"]
 
 
-def fetch_players_table(pages: list[int], version: str = "27",
+def fetch_players_table(http: Client, pages: list[int], version: str = "27",
                         batch: int = 10) -> list[dict]:
-    """按页拉 players.getPlayersForTable（50/页），返回去重后的全部卡基础行。"""
+    """按页拉 players.getPlayersForTable（50/页），返回去重后的卡基础行。"""
     import urllib.parse
     out: dict[int, dict] = {}
-    http = Client()
     for i in range(0, len(pages), batch):
         chunk = pages[i:i + batch]
         inputs = {str(k): {"json": {"page": p, "name": None, "f": None, "match": None,
@@ -194,47 +128,32 @@ def fetch_players_table(pages: list[int], version: str = "27",
     return list(out.values())
 
 
-def build_index_from_table(rows: list[dict], image_map: dict[int, str]) -> list[dict]:
-    """列表接口行 → site 索引行（无属性/徽章明细，覆盖到全部赛季卡）。"""
-    idx = []
-    for p in rows:
-        bid = p.get("relationId")
-        idx.append({
-            "id": bid,
-            "playerId": p.get("playerId"),
-            "name": p.get("name"),
-            "version": f"2k{p.get('version') or ''}",
-            "overall": p.get("overall"),
-            "position": p.get("position"),
-            "sec": None,
-            "team": p.get("team"),
-            "theme": p.get("theme"),
-            "collection": p.get("collection"),
-            "image": image_map.get(bid) if image_map else None,
-            "mt": None,
-            "auctionable": p.get("is_auctionable"),
-            "attrs": None,
-            "badges": None,
-            "hotzones": None,
-            "height_cm": p.get("height"),
-            "weight_kg": p.get("weight"),
-            "wingspan_cm": p.get("wingspan"),
-        })
-    return idx
+def fetch_all_players(version: str = "27", max_pages: int = 80) -> list[dict]:
+    """翻页直到空页/不足 50 条，拿到该版本全部卡（不写死页数，卡池扩容也跟得上）。"""
+    http = Client()
+    out: dict[int, dict] = {}
+    for page in range(1, max_pages + 1):
+        rows = fetch_players_table(http, [page], version)
+        if not rows:
+            break
+        for p in rows:
+            out[p["relationId"]] = p
+        if len(rows) < 50:
+            break
+    return list(out.values())
 
 
 def cmd_full27(args: argparse.Namespace) -> int:
     """全量 2K27：列表接口枚举全部卡 → 补抓缺失详情+图 → 重建索引。支持断点续跑。"""
-    rows = fetch_players_table(list(range(1, 27)))
+    rows = fetch_all_players()
     print(f"2K27 列表接口返回 {len(rows)} 张卡")
     pool = load_full()
     missing = [r for r in rows if str(r["relationId"]) not in pool]
     print(f"库内已有 {len(pool)} 张，需补抓 {len(missing)} 张（限 {args.limit}）")
-    stores = Stores()
     done = 0
     for r in missing[: args.limit]:
         cid = str(r["relationId"])
-        row = fetch_and_parse(Client(), cid, stores)
+        row = fetch_and_parse(Client(), cid)
         if row:
             pool[cid] = row
             done += 1
@@ -281,7 +200,6 @@ def cmd_rescrape(args: argparse.Namespace) -> int:
 def cmd_market(args: argparse.Namespace) -> int:
     from . import market as mkt
     client = Client()
-    stores = Stores()
     overview = mkt.fetch_market_overview(client)
     active: list[dict] = []
     active_ids: list[int] = []
@@ -306,7 +224,7 @@ def cmd_market(args: argparse.Namespace) -> int:
     hot = [int(k) for k, v in pool.items() if (v.get("overall") or 0) >= 90]
     ids = list(dict.fromkeys([i for i in active_ids if i] + tracked + hot))
     print(f"本轮实时价覆盖 {len(ids)} 张（active {len(active_ids)} / tracked {len(tracked)} / hot {len(hot)}）")
-    prices = mkt.snapshot(client, ids, stores)
+    prices = mkt.snapshot(client, ids)
     mkt.write_site_prices(prices, active)
     return 0
 
@@ -321,9 +239,6 @@ def main() -> int:
     p_parse.add_argument("--save", action="store_true", help="写入本地数据池并重建索引")
     p_parse.set_defaults(func=cmd_parse)
 
-    p_daily = sub.add_parser("daily", help="每日任务")
-    p_daily.add_argument("--new-limit", type=int, default=S.new_limit)
-    p_daily.set_defaults(func=cmd_daily)
 
     p_index = sub.add_parser("index", help="重建 site/data/cards.json")
     p_index.set_defaults(func=cmd_index)
@@ -337,7 +252,7 @@ def main() -> int:
     p_full.add_argument("--delay", type=float, default=0.6)
     p_full.set_defaults(func=cmd_full27)
 
-    p_market = sub.add_parser("market", help="实时行情快照 → prices.json + price_snapshots")
+    p_market = sub.add_parser("market", help="实时行情 → prices.json")
     p_market.set_defaults(func=cmd_market)
 
     args = ap.parse_args()

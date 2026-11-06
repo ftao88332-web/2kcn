@@ -6,7 +6,7 @@
   /api/trpc/auctionHouse.getMarketOverview,...?batch=1&input=...
     -> {mostActive: [{averagePrice, salesCount, totalVolume, lastSaleAt, player{relationId,name,...}}]}
 策略：每轮 = 活跃卡(top) ∪ tracked ∪ 库内 OVR≥90 的卡，逐批拉单卡 summary，
-写入 price_snapshots(有凭据)+ site/public/data/prices.json（站点直接读=打开即出价）。
+写入 site/public/data/prices.json（站点直接读=打开即出价）。
 """
 import datetime as dt
 import json
@@ -21,16 +21,10 @@ TRPC = f"{S.base}/api/trpc"
 PRICE_DELAY = 1.2  # 对上游的礼貌间隔
 
 
-class MarketSnapshot(dict):
-    pass
-
-
-def _trpc_get(http: Client, proc: str, inputs: list[dict], ) -> list[Any]:
-    """调用 tRPC，inputs 顺序对应 procedure 名列表(单过程)或 batch 并列(过程同名)。"""
-    if isinstance(proc, str):
-        proc = [proc] * len(inputs)
+def _trpc_get(http: Client, procs: list[str], inputs: list[dict]) -> list[Any]:
+    """调用 tRPC：procs 与 inputs 一一对应（batch 并列）。"""
     body = {str(i): {"json": item} for i, item in enumerate(inputs)}
-    url = (f"{TRPC}/" + ",".join(proc) +
+    url = (f"{TRPC}/" + ",".join(procs) +
            f"?batch=1&input={urllib.parse.quote(json.dumps(body, separators=(',', ':')), safe='')}")
     resp = http.get(url)
     data = resp.json()
@@ -39,17 +33,6 @@ def _trpc_get(http: Client, proc: str, inputs: list[dict], ) -> list[Any]:
         res = item.get("result", {}).get("data", {}).get("json")
         out.append(res)
     return out
-
-
-def fetch_price(http: Client, relation_id: int, version: str = "27") -> dict | None:
-    """单卡价格 summary；失败返回 None"""
-    try:
-        rows = _trpc_get(http, "players.getPlayerPriceSummary",
-                         [{"relationId": relation_id, "version": version}])
-        return rows[0]
-    except Exception as exc:
-        print(f"[warn] price {relation_id}: {exc}")
-        return None
 
 
 def fetch_market_overview(http: Client, version: str = "27", range_: str = "day",
@@ -84,13 +67,12 @@ def compact_price(summary: dict, ts_iso: str) -> dict:
     }
 
 
-def snapshot(http: Client, card_ids: list[int], stores, version: str = "27",
+def snapshot(http: Client, card_ids: list[int], version: str = "27",
              batch_size: int = 8) -> dict[int, dict]:
-    """批量拉价格 → 返回 {卡id: compact}；stores 用于写库/写站数据。"""
+    """批量拉价格 → 返回 {卡id: compact}。"""
     import time as _t
     result: dict[int, dict] = {}
     now_iso = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    snap_rows: list[dict] = []
     for i in range(0, len(card_ids), batch_size):
         chunk = card_ids[i:i + batch_size]
         inputs = [{"relationId": cid, "version": version} for cid in chunk]
@@ -104,16 +86,7 @@ def snapshot(http: Client, card_ids: list[int], stores, version: str = "27",
             if not summ:
                 continue
             result[cid] = compact_price(summ, now_iso)
-            snap_rows.append({
-                "card_id": cid, "ts": dt.date.today().isoformat(),
-                "mt": summ.get("averagePrice"), "auctionable": True,
-                "raw": {"sales_count": summ.get("salesCount"),
-                        "updated": now_iso,
-                        "top_bid": (summ.get("latestSales") or [{}])[0].get("current_high_bid")},
-            })
         _t.sleep(PRICE_DELAY)
-    if snap_rows:
-        stores.upsert("price_snapshots", snap_rows, on_conflict="card_id,ts")
     return result
 
 
