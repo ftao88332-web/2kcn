@@ -1,70 +1,52 @@
-# 2kCN · 国内版 NBA 2K MyTEAM 数据库 / 行情站
+# 2kCN · NBA 2K27 MyTEAM 数据库 / 行情
 
 线上：<https://ftao88332-web.github.io/2kcn/>
 
-零成本技术栈：**GitHub Actions 定时抓取 → Next.js 静态导出 → `gh-pages`**。
-没有数据库、没有图床、没有服务器；卡面图与数据全部随站点静态发布。
-方案文档：[`国内版2KDB建站方案.md`](./国内版2KDB建站方案.md) / [`MVP方案-交易行情搬砖工具.md`](./MVP方案-交易行情搬砖工具.md)
+纯静态、零成本：GitHub Actions 抓取 → Next.js 导出 → `gh-pages`。
+只收录 **2K27**，没有数据库、没有图床、没有服务器。
 
-## 目录结构
+## 结构
 
 ```
-├── scraper/                  # Python 抓取器
-│   ├── flight.py             #   解析 2kdb 页面 RSC 数据流（属性/徽章/热区一次全解）
-│   ├── main.py               #   CLI：parse / full27 / market / index / rescrape
-│   ├── market.py             #   实时行情（tRPC）→ site/public/data/prices.json
-│   ├── stores.py             #   本地文件存储（卡面图 → site/public/img）
-│   ├── settings.py           #   环境变量配置
-│   ├── tracked_ids.json      #   关注的卡 id → 每日刷新行情
-│   └── out/cards_full.json   #   全量数据池（随 git 提交，断点续跑）
-├── scripts/publish.sh        # 本地一键：重建索引 → 构建 → 推送 gh-pages
-├── site/                     # Next.js 静态导出（output: "export"）
-│   ├── app/                  #   首页 / 卡库 / 卡片详情 / 市场总览
-│   ├── data/cards.json       #   全量详情数据（详情页 SSG 用）
-│   ├── data/cards_index.json #   轻量索引（卡库列表分批加载用）
-│   └── public/               #   卡面图 + prices.json
-└── .github/workflows/
-    ├── deploy-site.yml       # main 变更 → 构建 → git push gh-pages
-    └── scrape.yml            # 每天 10:20 / 22:20（北京）抓取 + 部署
+scraper/
+  common.py           配置 + HTTP 客户端 + 图片存储
+  parse.py            页面解析 + 字段规范化
+  main.py             CLI：parse / full27 / rescrape / market
+  market.py           实时行情 → site/public/data/prices.json
+  out/cards_full.json 唯一数据源（卡池）
+scripts/
+  build_index.py      cards_full → site/data/cards.json + cards_index.json
+site/
+  app/                首页 / 卡库 / 详情 / 市场
+  components/         卡片瓦片、详情区块、行情面板
+  lib/core.ts         类型、路径、行情读取
+  lib/i18n.ts         中英文词表
+  public/img/         卡面图（自托管）
+  public/data/        prices.json
+.github/workflows/    抓取 + 构建发布
 ```
 
-## 本地跑通
+## 本地运行
 
 ```bash
-# 1) 抓取器
-python -m venv .venv && .venv\Scripts\activate        # Windows
 pip install -r scraper/requirements.txt
 
-# 解析单卡（调试）
-curl -sS https://2kdb.net/player/2761654 -o test.html
-python -m scraper.main parse test.html --save         # 同时更新 site/data/*.json
+python -m scraper.main full27 --limit 300   # 抓取/补抓
+python -m scraper.main market               # 行情
+python scripts/build_index.py               # 生成站点数据（必须）
 
-# 日常任务（仅 2K27）
-python -m scraper.main full27 --limit 300    # 枚举 2K27 全量并补抓（断点续跑）
-python -m scraper.main index                 # 由数据池重建 cards.json / cards_index.json
-python -m scraper.main market                # 拉实时行情 → prices.json
+cd site && npm ci && npm run dev            # http://localhost:3000
+npm run build                               # site/out/
 ```
 
-环境变量直接读进程环境（`scraper/settings.py`），可参考 `.env.example`；不自动加载 `.env` 文件。
+环境变量：`SCRAPE_DELAY`（默认 1.5 秒）。直接读进程环境，不加载 `.env`。
 
-```bash
-# 2) 站点
-cd site
-npm ci
-npm run dev     # http://localhost:3000
-npm run build   # 产物在 site/out/
-```
+## 发布
 
-本地发布：`bash scripts/publish.sh`（重建索引 → 构建 `/2kcn` → 推送 `gh-pages`）。
+推 `main` → `deploy site` 自动构建并推送 `gh-pages`。
+每天 10:20 / 22:20（北京）`scrape` 抓取新卡与行情并自动发布。
 
-## 上线（全部免费层）
+## 边界
 
-1. **GitHub Pages**：仓库 Settings → Pages → Source 选 `gh-pages` 分支。
-2. **自动部署**：push `main` 后 `deploy site` workflow 会构建并 `git push --force` 到 `gh-pages`（单次 pack，不受 API 5,000/h 限额影响）。
-3. **定时抓取**：`scrape` workflow 每天两跑，抓完自动提交数据并部署。
-4. 以后要更好 SEO/速度：花 ¥60/年 上自定义域名挂到 Pages。
-
-## 边界与红线
-
-- 图片资产归 2K Sports；不挂广告不收费；页脚已带免责声明 + 投诉邮箱。
-- 抓取节奏默认 1.2~1.5 秒/请求，别调小；上游是个人站，磕着用。
+- 卡图版权归 2K Sports；不挂广告、不收费。
+- 抓取间隔默认 1.5 秒，别调小。

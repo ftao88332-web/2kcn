@@ -1,6 +1,6 @@
 import Link from "next/link";
 import cards from "@/data/cards.json";
-import { IndexCard } from "@/lib/types";
+import { IndexCard } from "@/lib/core";
 import PlayerDetail from "@/components/player-detail";
 
 /** 服务端页：为索引内每张卡生成静态占位页；详情数据由客户端组件拉取/兜底 */

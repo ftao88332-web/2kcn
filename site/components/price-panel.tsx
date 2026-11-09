@@ -1,33 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { PricesDoc, PriceEntry, fmtMt, relativeBy } from "@/lib/prices";
-import { withBase } from "@/lib/base";
-
-let cache: { doc: PricesDoc; at: number } | null = null;
-
-/** 全站共享的实时价格文档（fetch 一次，模块级缓存） */
-export function usePrices(): { doc: PricesDoc | null; loading: boolean } {
-  const [doc, setDoc] = useState<PricesDoc | null>(cache?.doc ?? null);
-  const [loading, setLoading] = useState(!cache);
-  useEffect(() => {
-    if (cache) return;
-    (async () => {
-      try {
-        const res = await fetch(withBase("/data/prices.json"));
-        if (!res.ok) throw new Error(String(res.status));
-        const parsed = (await res.json()) as PricesDoc;
-        cache = { doc: parsed, at: Date.now() };
-        setDoc(parsed);
-      } catch {
-        /* 没 prices.json / 网络问题：面板显示缺数据态 */
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-  return { doc, loading };
-}
+import { PriceEntry, fmtMt, relativeBy } from "@/lib/core";
+import { usePrices } from "@/lib/use-prices";
 
 export default function PricePanel({ cardId }: { cardId: number | string }) {
   const { doc, loading } = usePrices();

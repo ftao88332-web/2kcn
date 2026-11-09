@@ -1,6 +1,6 @@
 import Link from "next/link";
 import cards from "@/data/cards.json";
-import { IndexCard } from "@/lib/types";
+import { IndexCard } from "@/lib/core";
 import CardTile from "@/components/card-tile";
 import MarketBoard from "@/components/market-board";
 

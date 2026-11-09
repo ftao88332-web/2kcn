@@ -1,23 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ActiveCard, PricesDoc, fmtMt, relativeBy } from "@/lib/prices";
-import { withBase } from "@/lib/base";
+import { ActiveCard, fmtMt, relativeBy } from "@/lib/core";
+import { usePrices } from "@/lib/use-prices";
 import Link from "next/link";
 import { rarity } from "@/lib/i18n";
 
 /** 实时成交榜（prices.json 的 active 板块） */
 export default function MarketBoard({ limit = 10 }: { limit?: number }) {
-  const [doc, setDoc] = useState<PricesDoc | null>(null);
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(withBase("/data/prices.json"));
-        if (res.ok) setDoc((await res.json()) as PricesDoc);
-      } catch { /* 静默 */ }
-    })();
-  }, []);
-
+  const { doc } = usePrices();
   if (!doc) {
     return <div className="h-40 animate-pulse rounded-xl bg-court-800" />;
   }

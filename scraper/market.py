@@ -10,12 +10,11 @@
 """
 import datetime as dt
 import json
+import os
 import urllib.parse
 from typing import Any
 
-from .http_client import Client
-from .mappers import public_dir
-from .settings import S
+from .common import Client, S
 
 TRPC = f"{S.base}/api/trpc"
 PRICE_DELAY = 1.2  # 对上游的礼貌间隔
@@ -95,7 +94,8 @@ def write_site_prices(prices: dict[int, dict], active: list[dict] | None = None)
     payload = {"ts": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                "cards": {str(k): v for k, v in prices.items()},
                "active": active or []}
-    path = public_dir() + "/prices.json"
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "..", "site", "public", "data", "prices.json")
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(payload, fh, ensure_ascii=False, separators=(",", ":"))
     print(f"site/public/data/prices.json 已写 {len(payload['cards'])} 卡 / active {len(payload['active'])}")

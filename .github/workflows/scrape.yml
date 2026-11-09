@@ -37,11 +37,14 @@ jobs:
       - name: 实时行情（tRPC 活跃卡 + 高总评 → prices.json）
         run: python -m scraper.main market
 
-      - name: 提交数据回仓库（cards_full.json / cards.json / cards_index.json / prices.json）
+      - name: 生成站点数据（cards_full.json → cards.json / cards_index.json）
+        run: python scripts/build_index.py
+
+      - name: 提交数据回仓库（cards_full.json / prices.json / 卡图）
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "data(t): daily sync ${{ github.run_id }}"
-          file_pattern: "scraper/out/cards_full.json site/data/cards.json site/data/cards_index.json site/public/data/prices.json site/public/img"
+          file_pattern: "scraper/out/cards_full.json site/public/data/prices.json site/public/img"
 
   # GITHUB_TOKEN 的 push 不触发其他 workflow，所以部署作为同一 run 的下游 job
   deploy:
@@ -64,6 +67,9 @@ jobs:
       - name: 安装依赖
         run: npm ci --no-audit --no-fund
         working-directory: site
+
+      - name: 生成站点数据
+        run: python scripts/build_index.py
 
       - name: 构建（静态导出）
         run: npm run build

@@ -4,24 +4,18 @@ __pycache__/
 .venv/
 venv/
 
-# Node
+# Node / Next
 node_modules/
 .next/
 site/out/
-site/preview/
-site/.env
-site/.env.local
 site/tsconfig.tsbuildinfo
 
-# 抓取运行时产物（out/cards_full.json 与 out/known.json 需要提交，其余忽略）
-scraper/out/images/
-scraper/out/sitemap_cache/
+# 由 scripts/build_index.py 生成
+site/data/cards.json
+site/data/cards_index.json
+
+# 运行时缓存 / 日志
 scraper/out/tmp/
+scraper/out/sitemap_cache/
 *.log
-
-# 探针脚本（开发草稿）
-_probe/
-
 .env
-_workflows_local/
-.gp-snap/

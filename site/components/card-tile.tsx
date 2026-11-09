@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { IndexCard } from "@/lib/types";
-import { withBase } from "@/lib/base";
+import { IndexCard } from "@/lib/core";
+import { withBase } from "@/lib/core";
 import { rarity } from "@/lib/i18n";
 
 export default function CardTile({ card }: { card: IndexCard }) {

@@ -35,6 +35,9 @@ jobs:
         run: npm ci --no-audit --no-fund
         working-directory: site
 
+      - name: 生成站点数据
+        run: python scripts/build_index.py
+
       - name: 构建（静态导出）
         run: npm run build
         working-directory: site

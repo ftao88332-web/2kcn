@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import cards from "@/data/cards_index.json";
-import { IndexCard } from "@/lib/types";
+import { IndexCard } from "@/lib/core";
 import CardTile from "@/components/card-tile";
 
 const PAGE = 120;
