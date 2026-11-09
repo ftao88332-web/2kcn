@@ -9,14 +9,12 @@ const PAGE = 120;
 
 export default function PlayersPage() {
   const [q, setQ] = useState("");
-  const [ver, setVer] = useState<string>("2k27");
   const [minOvr, setMinOvr] = useState(60);
   const [shown, setShown] = useState(PAGE);
 
   const filtered = useMemo(() => {
     const kw = q.trim().toLowerCase();
     return (cards as unknown as IndexCard[])
-      .filter((c) => (ver === "全部" ? true : c.version === ver))
       .filter((c) => (c.overall ?? 0) >= minOvr)
       .filter((c) =>
         kw
@@ -24,12 +22,11 @@ export default function PlayersPage() {
             (c.team ?? "").toLowerCase().includes(kw) ||
             (c.theme ?? "").toLowerCase().includes(kw)
           : true
-      )
-      .sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0));
-  }, [q, ver, minOvr]);
+      );
+  }, [q, minOvr]);
 
   // 筛选条件变化时回到第一批
-  useEffect(() => setShown(PAGE), [q, ver, minOvr]);
+  useEffect(() => setShown(PAGE), [q, minOvr]);
 
   const total = cards.length;
   const list = filtered.slice(0, shown);
@@ -50,20 +47,11 @@ export default function PlayersPage() {
           placeholder="搜索球员 / 球队 / 系列"
           className="w-64 rounded-lg border border-court-600 bg-court-800 px-3 py-2 outline-none focus:border-accent"
         />
-        <select
-          value={ver}
-          onChange={(e) => setVer(e.target.value)}
-          className="rounded-lg border border-court-600 bg-court-800 px-2 py-2"
-        >
-          {["2k27", "全部"].map((v) => (
-            <option key={v}>{v}</option>
-          ))}
-        </select>
         <label className="text-slate-400">
           总评 ≥ {minOvr}
           <input
             type="range"
-            min={60}
+            min={68}
             max={99}
             value={minOvr}
             onChange={(e) => setMinOvr(Number(e.target.value))}

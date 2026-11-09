@@ -22,7 +22,6 @@ def index_row(row: dict) -> dict:
               if isinstance(v, int) and 0 < v <= 5}
     return {
         "id": row["id"],
-        "playerId": row.get("player_id"),
         "name": row.get("name"),
         "version": row.get("version"),
         "overall": row.get("overall"),
@@ -33,7 +32,6 @@ def index_row(row: dict) -> dict:
         "collection": row.get("collection"),
         "image": row.get("image_url"),
         "mt": market.get("mt"),
-        "auctionable": market.get("is_auctionable"),
         "attrs": row.get("attrs"),
         "badges": badges,
         "hotzones": row.get("hotzones") or None,

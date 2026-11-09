@@ -2,7 +2,6 @@
 
 export type IndexCard = {
   id: number;
-  playerId: number | null;
   name: string;
   version: string;
   overall: number | null;
@@ -13,7 +12,6 @@ export type IndexCard = {
   collection: string | null;
   image: string | null;
   mt: number | null;
-  auctionable: boolean | null;
   attrs?: Record<string, unknown> | null;
   badges?: Record<string, unknown> | null;
   hotzones?: Record<string, unknown> | null;
