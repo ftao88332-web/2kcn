@@ -19,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
             <Link href="/players/" className="text-sm text-slate-300 hover:text-white">卡库</Link>
             <Link href="/market/" className="text-sm text-slate-300 hover:text-white">市场</Link>
+            <Link href="/lineup/" className="text-sm text-slate-300 hover:text-white">阵容</Link>
             <span className="ml-auto rounded-full bg-[#ff6b6b] px-2 py-0.5 text-[10px] font-bold text-[#0b1020]">
               公测
             </span>

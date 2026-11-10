@@ -16,14 +16,15 @@ scraper/
   out/cards_full.json 唯一数据源（卡池）
 scripts/
   build_index.py      cards_full → site/data/cards.json + cards_index.json
+  publish_prices.py   只把 prices.json 写到 gh-pages（不重建站点）
 site/
-  app/                首页 / 卡库 / 详情 / 市场
-  components/         卡片瓦片、详情区块、行情面板
+  app/                首页 / 卡库 / 详情 / 市场 / 阵容
+  components/         卡片瓦片、详情区块（属性/徽章/半场热区）、行情面板
   lib/core.ts         类型、路径、行情读取
   lib/i18n.ts         中英文词表
   public/img/         卡面图（自托管）
   public/data/        prices.json
-.github/workflows/    抓取 + 构建发布
+.github/workflows/    抓取 + 构建发布 + 15 分钟行情
 ```
 
 ## 本地运行
@@ -45,6 +46,12 @@ npm run build                               # site/out/
 
 推 `main` → `deploy site` 自动构建并推送 `gh-pages`。
 每天 10:20 / 22:20（北京）`scrape` 抓取新卡与行情并自动发布。
+`prices` 每 15 分钟只更新 `gh-pages/data/prices.json`，不触发整站重建。
+
+## 阵容
+
+`/lineup/` 纯前端：15 人（5 首发 + 10 替补），`localStorage` 持久化，
+`#lu=` 链接分享，按最新行情自动算总造价，可导出 PNG。
 
 ## 边界
 
