@@ -16,13 +16,25 @@ LOCAL = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                      "site", "public", "data", "prices.json")
 
 
+def fetch_live() -> dict | None:
+    """优先 raw.githubusercontent（CDN 不缓存），退回 Pages（Fastly 最多缓存 10 分钟）。"""
+    repo = os.environ.get("GITHUB_REPOSITORY", "ftao88332-web/2kcn")
+    urls = [f"https://raw.githubusercontent.com/{repo}/gh-pages/data/prices.json",
+            f"{URL}?t={int(time.time())}"]
+    for url in urls:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "2kcn-build"})
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                return json.loads(resp.read())
+        except Exception as exc:
+            print(f"[warn] {url} 取不到：{exc}")
+    return None
+
+
 def main() -> int:
-    try:
-        req = urllib.request.Request(f"{URL}?t={int(time.time())}", headers={"User-Agent": "2kcn-build"})
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            live = json.loads(resp.read())
-    except Exception as exc:
-        print(f"[skip] 线上行情取不到：{exc}")
+    live = fetch_live()
+    if not live:
+        print("[skip] 线上行情取不到，按仓库里的发布")
         return 0
 
     cur = {}
