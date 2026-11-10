@@ -21,7 +21,14 @@ jobs:
       SCRAPE_DELAY: "0.6"
       GITHUB_TOKEN: ${{ github.token }}
     steps:
+      # 只取行情需要的文件：仓库里 100+MB 卡图不下载，96 次/天的定时任务才跑得快。
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scraper
+            scripts
+            site/public/data
+          filter: blob:none
 
       - uses: actions/setup-python@v5
         with:
