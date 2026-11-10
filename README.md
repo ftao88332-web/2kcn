@@ -52,6 +52,19 @@ npm run build                               # site/out/
 > 注意：GitHub 的 `schedule` 在本仓库经常延迟数小时（`scrape` 的两次日常任务实测晚 5–7 小时），
 > 所以 15 分钟只是「触发目标」，实际刷新以线上 `prices.json` 的 `ts` 为准。
 
+### 外部定时器（让 15 分钟真的成立）
+
+用 cron-job.org（免费）每 15 分钟调一次 `workflow_dispatch`，绕开 GitHub 的调度延迟：
+
+- URL：`https://api.github.com/repos/ftao88332-web/2kcn/actions/workflows/prices.yml/dispatches`
+- Method：`POST`
+- Headers：`Authorization: Bearer <fine-grained PAT，仅勾 Actions: read/write>`
+  、`Accept: application/vnd.github+json`、`Content-Type: application/json`
+- Body：`{"ref":"main"}`
+- 间隔：15 分钟（PAT 有效期最长 1 年，到期记得换）
+
+GitHub 自带的 cron 留着当兜底，重复触发无副作用（`concurrency` 会取消旧的那次）。
+
 ## 阵容
 
 `/lineup/` 纯前端：15 人（5 首发 + 10 替补），`localStorage` 持久化，
