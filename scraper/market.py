@@ -17,7 +17,6 @@ from typing import Any
 from .common import Client, S
 
 TRPC = f"{S.base}/api/trpc"
-PRICE_DELAY = 1.2  # 对上游的礼貌间隔
 
 
 def _trpc_get(http: Client, procs: list[str], inputs: list[dict]) -> list[Any]:
@@ -68,8 +67,7 @@ def compact_price(summary: dict, ts_iso: str) -> dict:
 
 def snapshot(http: Client, card_ids: list[int], version: str = "27",
              batch_size: int = 8) -> dict[int, dict]:
-    """批量拉价格 → 返回 {卡id: compact}。"""
-    import time as _t
+    """批量拉价格 → 返回 {卡id: compact}。间隔由 Client 统一控制（SCRAPE_DELAY）。"""
     result: dict[int, dict] = {}
     now_iso = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     for i in range(0, len(card_ids), batch_size):
@@ -85,7 +83,6 @@ def snapshot(http: Client, card_ids: list[int], version: str = "27",
             if not summ:
                 continue
             result[cid] = compact_price(summ, now_iso)
-        _t.sleep(PRICE_DELAY)
     return result
 
 

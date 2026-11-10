@@ -31,24 +31,43 @@ def call(url: str, token: str, method: str = "GET", body: dict | None = None) ->
         return json.loads(resp.read() or b"{}")
 
 
+def merge(old: dict, new: dict) -> dict:
+    """新快照为准，本轮没抓到的卡保留上一版（条目自带更新时间，不会假装新鲜）。"""
+    cards = dict(old.get("cards") or {})
+    cards.update(new.get("cards") or {})
+    new["cards"] = cards
+    if not new.get("active"):
+        new["active"] = old.get("active") or []
+    return new
+
+
 def main() -> int:
     token = os.environ.get("GITHUB_TOKEN")
     repo = os.environ.get("GITHUB_REPOSITORY")
     if not token or not repo:
         print("缺少 GITHUB_TOKEN / GITHUB_REPOSITORY", file=sys.stderr)
         return 1
-    with open(LOCAL, "rb") as fh:
-        content = base64.b64encode(fh.read()).decode()
+    with open(LOCAL, "r", encoding="utf-8") as fh:
+        fresh = json.load(fh)
 
     url = f"{API}/repos/{repo}/contents/{PATH}"
     for attempt in range(1, 5):
         try:
             sha = None
+            payload = fresh
             try:
-                sha = call(f"{url}?ref={BRANCH}", token).get("sha")
+                meta = call(f"{url}?ref={BRANCH}", token)
+                sha = meta.get("sha")
+                if meta.get("content"):
+                    old = json.loads(base64.b64decode(meta["content"]))
+                    payload = merge(old, fresh)
             except urllib.error.HTTPError as exc:
                 if exc.code != 404:
                     raise
+            content = base64.b64encode(
+                json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()
+            ).decode()
+            print(f"本轮 {len(fresh.get('cards') or {})} 卡 → 合并后 {len(payload.get('cards') or {})} 卡")
             body = {"message": f"prices: {time.strftime('%F %T UTC', time.gmtime())}",
                     "content": content, "branch": BRANCH}
             if sha:
