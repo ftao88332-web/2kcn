@@ -47,6 +47,10 @@ npm run build                               # site/out/
 推 `main` → `deploy site` 自动构建并推送 `gh-pages`。
 每天 10:20 / 22:20（北京）`scrape` 抓取新卡与行情并自动发布。
 `prices` 每 15 分钟只更新 `gh-pages/data/prices.json`，不触发整站重建。
+整站发布前会跑 `scripts/keep_prices.py`：线上行情比仓库新就沿用线上的，避免把 15 分钟快照冲掉。
+
+> 注意：GitHub 的 `schedule` 在本仓库经常延迟数小时（`scrape` 的两次日常任务实测晚 5–7 小时），
+> 所以 15 分钟只是「触发目标」，实际刷新以线上 `prices.json` 的 `ts` 为准。
 
 ## 阵容
 
