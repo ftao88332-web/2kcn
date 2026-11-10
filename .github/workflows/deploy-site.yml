@@ -38,6 +38,9 @@ jobs:
       - name: 生成站点数据
         run: python scripts/build_index.py
 
+      - name: 保留线上更新的行情（15 分钟快照不被整站发布覆盖）
+        run: python scripts/keep_prices.py
+
       - name: 构建（静态导出）
         run: npm run build
         working-directory: site
