@@ -3,7 +3,8 @@ name: prices
 # 每 15 分钟只更新行情文件，不重建整站（前端运行时 fetch prices.json）。
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    # 避开 :00/:15/:30/:45（GitHub 整点最拥堵，*/15 常被延迟甚至丢跑）
+    - cron: "4,19,34,49 * * * *"
   workflow_dispatch:
 
 concurrency:
