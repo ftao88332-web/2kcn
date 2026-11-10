@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { IndexCard, withBase } from "@/lib/core";
 import { rarity } from "@/lib/i18n";
+import LivePrice from "@/components/live-price";
 
 export default function CardTile({ card }: { card: IndexCard }) {
   const rar = rarity(card.overall);
@@ -25,11 +26,7 @@ export default function CardTile({ card }: { card: IndexCard }) {
           <span className={rar.text}>{card.overall ?? "?"}</span>
           <span className="ml-1 text-[10px] font-bold text-slate-300">{card.position ?? ""}</span>
         </div>
-        {card.mt != null && (
-          <div className="absolute right-2 top-2 rounded bg-court-900/80 px-1.5 py-0.5 text-[10px] font-mono text-gain">
-            {card.mt.toLocaleString("en-US")}
-          </div>
-        )}
+        <LivePrice id={card.id} fallback={card.mt} />
       </div>
       <div className="p-3">
         <p className="truncate font-bold text-white group-hover:text-accent">{card.name}</p>
