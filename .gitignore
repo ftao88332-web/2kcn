@@ -19,3 +19,7 @@ scraper/out/tmp/
 scraper/out/sitemap_cache/
 *.log
 .env
+
+# 本地定时器（含 token，不入库）
+scripts/dispatch_prices.bat
+scripts/dispatch_prices.log
