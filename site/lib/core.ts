@@ -21,13 +21,16 @@ export type IndexCard = {
 };
 
 export type PriceEntry = {
-  a: number | null;   // 双平台均价
-  s: number | null;   // 成交笔数
+  a: number | null;   // 两个价格池的综合均价
+  s: number | null;   // 总成交笔数
   u: string;          // 更新时间
+  co: number | null;  // 主机（PS/XBOX/SWITCH）均价
   pc: number | null;  // PC 均价
-  co: number | null;  // 主机均价
-  tr: number[];       // 主机端趋势点
-  sales: { b: number; o: number | null; t: string }[];
+  cos?: number | null; // 主机成交笔数
+  pcs?: number | null; // PC 成交笔数
+  tr: number[];       // 主机走势点
+  tp?: number[];      // PC 走势点
+  sales: { b: number; o: number | null; t: string; p?: string }[];
 };
 
 export type ActiveCard = {
@@ -45,7 +48,8 @@ export type ActiveCard = {
 export type PricesDoc = {
   ts: string;
   cards: Record<string, PriceEntry>;
-  active: ActiveCard[];
+  active: ActiveCard[];        // 主机榜
+  activePc?: ActiveCard[];     // PC 榜
 };
 
 export const BASE = process.env.NEXT_PUBLIC_BASE_PATH || "";
@@ -57,6 +61,17 @@ export function withBase(path: string | null | undefined): string {
 export function fmtMt(n: number | null | undefined): string {
   return n == null ? "-" : n.toLocaleString("en-US") + " MT";
 }
+
+/** 不带单位的数字（列表角标用） */
+export function fmtNum(n: number | null | undefined): string {
+  return n == null ? "-" : n.toLocaleString("en-US");
+}
+
+/** 2K27 拍卖行只有两个价格池 */
+export const PLATFORMS = [
+  { key: "co", label: "主机", hint: "PS / XBOX / SWITCH" },
+  { key: "pc", label: "PC", hint: "Steam" },
+] as const;
 
 export function relativeBy(isoPrefix: string, now?: Date): string {
   if (!isoPrefix) return "";

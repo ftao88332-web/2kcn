@@ -36,8 +36,9 @@ def merge(old: dict, new: dict) -> dict:
     cards = dict(old.get("cards") or {})
     cards.update(new.get("cards") or {})
     new["cards"] = cards
-    if not new.get("active"):
-        new["active"] = old.get("active") or []
+    for key in ("active", "activePc"):
+        if not new.get(key):
+            new[key] = old.get(key) or []
     return new
 
 

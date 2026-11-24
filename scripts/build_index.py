@@ -53,7 +53,10 @@ def main() -> None:
     lean = [{k: r.get(k) for k in LEAN_FIELDS} for r in rows]
     with open(os.path.join(DATA, "cards_index.json"), "w", encoding="utf-8", newline="\n") as fh:
         json.dump(lean, fh, ensure_ascii=False, separators=(",", ":"))
-    print(f"cards.json {len(rows)} 行 / cards_index.json {len(lean)} 行")
+    # 只有这些 id 才有详情页；行情榜里可能有库里暂时没有的卡，前端据此避免死链
+    with open(os.path.join(DATA, "card_ids.json"), "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(sorted(r["id"] for r in rows), fh, separators=(",", ":"))
+    print(f"cards.json {len(rows)} 行 / cards_index.json {len(lean)} 行 / card_ids.json {len(rows)} 个")
 
 
 if __name__ == "__main__":

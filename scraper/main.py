@@ -141,25 +141,32 @@ def cmd_rescrape(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_market(_args: argparse.Namespace) -> int:
-    from . import market as mkt
-    client = Client()
-    overview = mkt.fetch_market_overview(client) or {}
-    active, active_ids = [], []
+def _active_rows(overview: dict) -> tuple[list[dict], list[int]]:
+    """marketOverview.mostActive → 榜单条目 + 卡 id 列表"""
+    rows, ids = [], []
     for item in overview.get("mostActive") or []:
         p = item.get("player") or {}
-        active.append({
+        rows.append({
             "id": p.get("relationId"), "name": p.get("name"), "ovr": p.get("overall"),
             "theme": p.get("theme"), "camp": p.get("collection"),
             "price": item.get("averagePrice"), "sales": item.get("salesCount"),
             "volume": item.get("totalVolume"), "last": (item.get("lastSaleAt") or "")[:16],
         })
-        active_ids.append(p.get("relationId"))
+        ids.append(p.get("relationId"))
+    return rows, [i for i in ids if i]
+
+
+def cmd_market(_args: argparse.Namespace) -> int:
+    from . import market as mkt
+    client = Client()
+    # 2K27 只有两个价格池：consoles（主机 PS/XBOX/SWITCH）与 pc
+    active_co, ids_co = _active_rows(mkt.fetch_market_overview(client) or {})
+    active_pc, ids_pc = _active_rows(mkt.fetch_market_overview(client, platform="pc") or {})
 
     hot = [int(k) for k, v in load_full().items() if (v.get("overall") or 0) >= 90]
-    ids = list(dict.fromkeys([i for i in active_ids if i] + hot))
-    print(f"实时价覆盖 {len(ids)} 张（active {len(active_ids)} / hot {len(hot)}）")
-    mkt.write_site_prices(mkt.snapshot(client, ids), active)
+    ids = list(dict.fromkeys(ids_co + ids_pc + hot))
+    print(f"实时价覆盖 {len(ids)} 张（主机榜 {len(ids_co)} / PC 榜 {len(ids_pc)} / hot {len(hot)}）")
+    mkt.write_site_prices(mkt.snapshot(client, ids), active_co, active_pc)
     return 0
 
 

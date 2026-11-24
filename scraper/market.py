@@ -45,21 +45,29 @@ def fetch_market_overview(http: Client, version: str = "27", range_: str = "day"
 
 
 def compact_price(summary: dict, ts_iso: str) -> dict:
-    """summary → prices.json 里的卡条目"""
+    """summary → prices.json 里的卡条目
+
+    2K27 的拍卖行只有两个价格池（2kdb 源码 v>=27 同样是 ["consoles","pc"]）：
+      consoles = 主机（PS / Xbox / Switch 合并），pc = PC。
+    """
     if not summary:
         return {}
-    plats = {p.get("platform"): p.get("averagePrice") for p in (summary.get("averagePrices") or [])}
+    plats = {p.get("platform"): p for p in (summary.get("averagePrices") or [])}
     trends = {p.get("platform"): (p.get("points") or [])[-12:] for p in (summary.get("priceTrends") or [])}
     latest = (summary.get("latestSales") or [])[:6]
+    co, pc = plats.get("consoles") or {}, plats.get("pc") or {}
     return {
-        "a": summary.get("averagePrice"),            # 双平台均价
-        "s": summary.get("salesCount"),              # 销量
+        "a": summary.get("averagePrice"),            # 两池综合均价
+        "s": summary.get("salesCount"),              # 总成交笔数
         "u": ts_iso,                                  # 更新时刻
-        "pc": plats.get("pc"), "co": plats.get("consoles"),
-        "tr": trends.get("consoles") or trends.get("pc") or [],
+        "co": co.get("averagePrice"), "pc": pc.get("averagePrice"),
+        "cos": co.get("salesCount"), "pcs": pc.get("salesCount"),
+        "tr": trends.get("consoles") or [],
+        "tp": trends.get("pc") or [],
         "sales": [
             {"b": s.get("current_high_bid"), "o": s.get("buyout_value") or None,
-             "t": (s.get("endtime_utc") or "")[:16].replace("T", " ")}
+             "t": (s.get("endtime_utc") or "")[:16].replace("T", " "),
+             "p": s.get("platform")}
             for s in latest if s.get("current_high_bid") is not None
         ],
     }
@@ -86,11 +94,13 @@ def snapshot(http: Client, card_ids: list[int], version: str = "27",
     return result
 
 
-def write_site_prices(prices: dict[int, dict], active: list[dict] | None = None) -> None:
-    """prices + 活跃榜 → site/public/data/prices.json。"""
+def write_site_prices(prices: dict[int, dict], active: list[dict] | None = None,
+                      active_pc: list[dict] | None = None) -> None:
+    """prices + 两个端各自的活跃榜 → site/public/data/prices.json。"""
     payload = {"ts": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                "cards": {str(k): v for k, v in prices.items()},
-               "active": active or []}
+               "active": active or [],
+               "activePc": active_pc or []}
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         "..", "site", "public", "data", "prices.json")
     with open(path, "w", encoding="utf-8", newline="\n") as fh:

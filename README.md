@@ -65,10 +65,21 @@ npm run build                               # site/out/
 
 GitHub 自带的 cron 留着当兜底，重复触发无副作用（`concurrency` 会取消旧的那次）。
 
+## 行情
+
+2K27 的拍卖行只有**两个价格池**（2kdb 前端源码 v≥27 同样写着 `["consoles","pc"]`）：
+
+- **主机** `consoles`：PS / Xbox / Switch 合并计入
+- **PC** `pc`：Steam
+
+两边价格互不相通，所以卡片瓦片、球员详情、市场总览都按端分别显示，
+`prices.json` 里每张卡同时带 `co` / `pc`（均价）、`cos` / `pcs`（成交笔数）、`tr` / `tp`（走势）。
+
 ## 阵容
 
-`/lineup/` 纯前端：15 人（5 首发 + 10 替补），`localStorage` 持久化，
-`#lu=` 链接分享，按最新行情自动算总造价，可导出 PNG。
+`/lineup/` 纯前端：15 人 = 3 组 × 5 个位置（PG SG SF PF C 各 3 人，首发 / 替补 / 替补续），
+**每个位置只能放该位置的卡**；槽位显示卡面图，`localStorage` 持久化，
+`#lu=` 链接分享，按主机价或 PC 价算总造价，可导出带卡面的 PNG。
 
 ## 边界
 

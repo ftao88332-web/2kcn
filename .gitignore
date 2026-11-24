@@ -13,6 +13,7 @@ site/tsconfig.tsbuildinfo
 # 由 scripts/build_index.py 生成
 site/data/cards.json
 site/data/cards_index.json
+site/data/card_ids.json
 
 # 运行时缓存 / 日志
 scraper/out/tmp/
