@@ -12,7 +12,7 @@ import os
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FULL = os.path.join(ROOT, "scraper", "out", "cards_full.json")
 DATA = os.path.join(ROOT, "site", "data")
-LEAN_FIELDS = ("id", "name", "version", "overall", "position", "team",
+LEAN_FIELDS = ("id", "name", "version", "overall", "position", "sec", "team",
                "theme", "collection", "image", "mt")
 
 

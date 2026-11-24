@@ -9,7 +9,7 @@ import { usePrices } from "@/lib/use-prices";
 const ALL = cards as unknown as IndexCard[];
 const BY_ID = new Map(ALL.map((c) => [c.id, c]));
 
-/** 15 人 = 3 组 × 5 个位置：每个位置只能放该位置的卡 */
+/** 15 人 = 3 组 × 5 个位置：卡可打主位置或副位置 */
 const POS = ["PG", "SG", "SF", "PF", "C"];
 const UNITS = ["首发", "替补", "替补（续）"];
 const SLOTS = Array.from({ length: 15 }, (_, i) => ({
@@ -21,14 +21,21 @@ type Basis = "co" | "pc";
 
 const empty = (): (number | null)[] => Array(SLOTS.length).fill(null);
 
-/** 位置对号入座：位置不符的卡放到同位置的空位，放不下就丢弃 */
+/** 卡能打的所有位置：主位置 + 副位置（去重） */
+function positionsOf(c: IndexCard): string[] {
+  const list = [c.position, c.sec].filter(Boolean) as string[];
+  return [...new Set(list)];
+}
+
+/** 位置对号入座：优先主位置空位，其次副位置空位，都放不下就丢弃 */
 function normalize(arr: (number | null)[]): (number | null)[] {
   const out = empty();
   for (const id of arr) {
     if (!id) continue;
     const c = BY_ID.get(id);
     if (!c) continue;
-    const at = SLOTS.findIndex((s, i) => s.pos === c.position && out[i] == null);
+    const poss = positionsOf(c);
+    const at = SLOTS.findIndex((s, i) => poss.includes(s.pos) && out[i] == null);
     if (at >= 0) out[at] = id;
   }
   return out;
@@ -80,7 +87,7 @@ export default function LineupPage() {
     const kw = q.trim().toLowerCase();
     return ALL
       .filter((c) => !used.has(c.id))
-      .filter((c) => !slotPos || c.position === slotPos)
+      .filter((c) => !slotPos || positionsOf(c).includes(slotPos))
       .filter((c) => !kw || [c.name, c.team, c.theme, c.collection]
         .some((v) => (v ?? "").toLowerCase().includes(kw)))
       .slice(0, 30);
@@ -285,7 +292,7 @@ export default function LineupPage() {
           {slot == null ? (
             <div className="space-y-2 text-sm text-slate-400">
               <p className="font-semibold text-ink">选一张卡放进阵容</p>
-              <p>点击左侧任意空位，然后搜索该位置的球员。每个位置只能放自己位置的卡（PG 不能打中锋）。</p>
+              <p>点击左侧任意空位，然后搜索能打该位置的球员。卡可同时打主位置和副位置（例如主 SF 副 SG 的卡也能放进 SG 位），但 PG 不能打中锋。</p>
               <p className="text-xs text-slate-500">阵容自动保存在本机；点「分享链接」可发给朋友直接还原。</p>
             </div>
           ) : (
@@ -311,7 +318,7 @@ export default function LineupPage() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm text-ink">{c.name}</span>
                       <span className="block truncate text-[11px] text-slate-500">
-                        {c.position ?? ""} · {c.team ?? "自由球员"} · {c.theme ?? c.collection ?? ""}
+                        {c.position}{c.sec ? ` / ${c.sec}` : ""} · {c.team ?? "自由球员"} · {c.theme ?? c.collection ?? ""}
                       </span>
                     </span>
                     <span className="text-sm font-black text-accent">{c.overall ?? "?"}</span>

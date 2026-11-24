@@ -24,7 +24,7 @@ export default function CardTile({ card }: { card: IndexCard }) {
         )}
         <div className="absolute left-2 top-2 rounded px-1.5 py-0.5 text-lg font-black leading-none bg-court-900/70">
           <span className={rar.text}>{card.overall ?? "?"}</span>
-          <span className="ml-1 text-[10px] font-bold text-slate-300">{card.position ?? ""}</span>
+          <span className="ml-1 text-[10px] font-bold text-slate-300">{card.position ?? ""}{card.sec ? `/${card.sec}` : ""}</span>
         </div>
         <LivePrice id={card.id} fallback={card.mt} />
       </div>
