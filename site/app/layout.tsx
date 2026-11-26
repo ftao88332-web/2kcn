@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
+import DataStamp from "@/components/data-stamp";
 
 export const metadata: Metadata = {
   title: "2K中文库 | NBA 2K MyTEAM 实时行情·球员卡数据库",
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <span className="ml-auto rounded-full bg-[#ff6b6b] px-2 py-0.5 text-[10px] font-bold text-[#0b1020]">
               公测
             </span>
+            <DataStamp />
           </nav>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6">{children}</main>

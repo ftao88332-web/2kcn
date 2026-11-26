@@ -131,6 +131,7 @@ def card_row(raw: dict[str, Any], source_url: str, image_url: str | None) -> dic
     badges: dict[str, Any] = {}
     hotzones: dict[str, Any] = {}
     market: dict[str, Any] = {}
+    animations: dict[str, Any] = {}
 
     for key, val in raw.items():
         k = str(key)
@@ -146,8 +147,10 @@ def card_row(raw: dict[str, Any], source_url: str, image_url: str | None) -> dic
             badges[k] = val
         elif kind == "hotzone":
             hotzones[k] = val
-        elif kind in ("tendency", "animation"):
-            continue  # 站点不展示
+        elif kind == "animation":
+            animations[k] = val
+        elif kind == "tendency":
+            continue  # 倾向值站点不展示
         else:
             market[k] = val
 
@@ -179,6 +182,7 @@ def card_row(raw: dict[str, Any], source_url: str, image_url: str | None) -> dic
         "attrs": attrs,
         "badges": badges,
         "hotzones": hotzones,
+        "animations": animations,
         "market": market,
         "source_url": source_url,
         "parsed_at": dt.datetime.now(dt.timezone.utc).isoformat(),

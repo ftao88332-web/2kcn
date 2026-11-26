@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ATTR_GROUPS, TIER_CN, attrCn, badgeCn } from "@/lib/i18n";
+import Link from "next/link";
+import { ATTR_CN, ATTR_GROUPS, TIER_CN, attrCn, badgeCn, ANIM_GROUPS, animCn } from "@/lib/i18n";
+import type { IndexCard } from "@/lib/core";
 
 /* ---------------- 属性 ---------------- */
 const barColor = (v: number) =>
@@ -81,6 +83,81 @@ export function BadgesGrid({ badges }: { badges: Record<string, number> }) {
           {showAll ? "折叠" : `展开全部 ${owned.length} 个徽章`}
         </button>
       )}
+    </div>
+  );
+}
+
+/* ---------------- 动作包 ---------------- */
+export function AnimationsGrid({ animations }: { animations: Record<string, unknown> }) {
+  const entries = Object.entries(animations).filter(([, v]) => typeof v === "string" && v);
+  if (!entries.length) return <p className="text-sm text-muted">动作包数据暂缺。</p>;
+  return (
+    <div className="grid gap-x-8 gap-y-6 md:grid-cols-2 lg:grid-cols-3">
+      {ANIM_GROUPS.map((g) => {
+        const rows = g.keys.filter((k) => animations[k] != null);
+        if (!rows.length) return null;
+        return (
+          <div key={g.en}>
+            <p className="mb-2.5 border-b border-court-600 pb-1.5 text-[11px] font-bold uppercase tracking-widest text-muted">
+              {g.cn} <span className="opacity-60">{g.en}</span>
+            </p>
+            <div className="space-y-2">
+              {rows.map((k) => (
+                <div key={k} className="flex items-center justify-between gap-3 text-xs">
+                  <span className="text-muted">{animCn(k)}</span>
+                  <span className="truncate text-right text-ink/90">{String(animations[k])}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ---------------- 双人组 / 进化 ---------------- */
+export function DuoRow({ duos }: { duos: NonNullable<IndexCard["duos"]> }) {
+  return (
+    <div className="space-y-2">
+      {duos.map((d) => (
+        <Link key={d.id} href={`/player/${d.id}/`}
+          className="flex items-center gap-3 rounded-lg border border-court-600 bg-court-900/50 px-3 py-2 hover:border-accent/60 hover:bg-court-700/60">
+          <span className="font-black text-accent">{d.overall ?? "?"}</span>
+          <span className="text-sm text-ink">{d.name ?? "搭档卡"}</span>
+          {d.position && <span className="text-[11px] text-slate-500">{d.position}</span>}
+          <span className="ml-auto text-xs text-muted">查看搭档 →</span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+export function EvoRow({ evos }: { evos: NonNullable<IndexCard["evos"]> }) {
+  return (
+    <div className="space-y-2.5">
+      <p className="text-xs text-muted">该卡满足进化要求后可升级，以下是各阶段带来的属性与徽章加成。</p>
+      {evos.map((e, i) => (
+        <div key={i} className="rounded-lg border border-court-600 bg-court-900/50 px-3 py-2.5">
+          <div className="flex items-center gap-2">
+            <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[11px] font-bold text-accent">阶段 {e.stage ?? i + 1}</span>
+            {e.label && <span className="text-sm text-ink">{e.label}</span>}
+            <span className="ml-auto text-[11px] text-muted">进化加成</span>
+          </div>
+          {e.gains && e.gains.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {e.gains.map((g) => (
+                <span key={g.k} className="rounded bg-court-700/60 px-1.5 py-0.5 text-[11px] text-ink/90">
+                  {ATTR_CN[g.k] ?? badgeCn(g.k).name}{" "}
+                  <span className="font-bold text-accent">+{g.d}</span>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-1.5 text-[11px] text-muted">该阶段无加成数据</p>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

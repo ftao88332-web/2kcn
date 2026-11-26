@@ -5,19 +5,28 @@ export type IndexCard = {
   name: string;
   version: string;
   overall: number | null;
+  off_overall?: number | null;
+  def_overall?: number | null;
   position: string | null;
   sec: string | null;
   team: string | null;
   theme: string | null;
   collection: string | null;
+  tier?: number | null;
   image: string | null;
   mt: number | null;
-  attrs?: Record<string, unknown> | null;
-  badges?: Record<string, unknown> | null;
-  hotzones?: Record<string, unknown> | null;
+  badge_count?: number | null;
+  hof_count?: number | null;
   height_cm?: number | null;
   weight_kg?: number | null;
   wingspan_cm?: number | null;
+  attrs?: Record<string, unknown> | null;
+  badges?: Record<string, unknown> | null;
+  hotzones?: Record<string, unknown> | null;
+  animations?: Record<string, unknown> | null;
+  plays?: string[] | null;
+  duos?: { id: number; name?: string | null; overall?: number | null; position?: string | null }[] | null;
+  evos?: { stage?: number | null; label?: string | null; gains?: { k: string; d: number }[] | null }[] | null;
 };
 
 export type PriceEntry = {
@@ -65,6 +74,17 @@ export function fmtMt(n: number | null | undefined): string {
 /** 不带单位的数字（列表角标用） */
 export function fmtNum(n: number | null | undefined): string {
   return n == null ? "-" : n.toLocaleString("en-US");
+}
+
+/** 从 prices 文档取某张卡的价格（默认综合均价，可指定端） */
+export function priceOfId(
+  doc: PricesDoc | null,
+  id: number,
+  basis: "co" | "pc" | "a" = "a"
+): number | null {
+  const e = doc?.cards?.[String(id)];
+  if (!e) return null;
+  return e[basis] ?? e.a ?? null;
 }
 
 /** 2K27 拍卖行只有两个价格池 */

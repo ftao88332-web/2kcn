@@ -12,39 +12,85 @@ import os
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FULL = os.path.join(ROOT, "scraper", "out", "cards_full.json")
 DATA = os.path.join(ROOT, "site", "data")
-LEAN_FIELDS = ("id", "name", "version", "overall", "position", "sec", "team",
-               "theme", "collection", "image", "mt")
+LEAN_FIELDS = ("id", "name", "version", "overall", "off_overall", "def_overall",
+               "position", "sec", "team", "theme", "collection", "tier", "height_cm",
+               "weight_kg", "wingspan_cm", "image", "mt", "badge_count", "hof_count")
 
 
-def index_row(row: dict) -> dict:
+def index_row(row: dict, pool: dict | None = None) -> dict:
     market = row.get("market") or {}
     badges = {k: v for k, v in (row.get("badges") or {}).items()
               if isinstance(v, int) and 0 < v <= 5}
+    animations = {k: v for k, v in (row.get("animations") or {}).items()
+                  if isinstance(v, str) and v and v not in ("None", "Off")}
+    hof = sum(1 for v in badges.values() if v >= 4)
+
+    # 双人组：从 attrs.duo1 里取搭档 relationId，关联卡库拿名字/总评
+    duos: list[dict] = []
+    for duo in (row.get("attrs", {}).get("duo1") or []):
+        rid = duo.get("relationId1") or duo.get("relationId2")
+        other = duo.get("relationId2") if rid == row["id"] else duo.get("relationId1")
+        if other is None:
+            continue
+        mate = (pool or {}).get(str(other)) or {}
+        duos.append({
+            "id": other,
+            "name": mate.get("name"),
+            "overall": mate.get("overall"),
+            "position": mate.get("position"),
+        })
+    # 进化阶段：attrs.evos 是同一张卡各进化阶段的加成包（evo_num / evo_name），
+    # 只有生效项为正值，其余为 0，因此这里列正向加成
+    evos: list[dict] = []
+    for evo in ((row.get("attrs") or {}).get("evos") or []):
+        gains: list[dict] = []
+        for k, v in evo.items():
+            if isinstance(v, bool) or not isinstance(v, (int, float)):
+                continue
+            if k in ("playerId", "relationId", "evo_num", "date") or v <= 0:
+                continue
+            gains.append({"k": k, "d": v})
+        gains.sort(key=lambda g: -g["d"])
+        evos.append({
+            "stage": evo.get("evo_num"),
+            "label": evo.get("evo_name"),
+            "gains": gains[:12],
+        })
+
     return {
         "id": row["id"],
         "name": row.get("name"),
         "version": row.get("version"),
         "overall": row.get("overall"),
+        "off_overall": row.get("off_overall"),
+        "def_overall": row.get("def_overall"),
         "position": row.get("position"),
         "sec": row.get("sec_position"),
         "team": row.get("team"),
         "theme": row.get("theme"),
         "collection": row.get("collection"),
-        "image": row.get("image_url"),
-        "mt": market.get("mt"),
-        "attrs": row.get("attrs"),
-        "badges": badges,
-        "hotzones": row.get("hotzones") or None,
+        "tier": row.get("tier"),
         "height_cm": row.get("height_cm"),
         "weight_kg": row.get("weight_kg"),
         "wingspan_cm": row.get("wingspan_cm"),
+        "image": row.get("image_url"),
+        "mt": market.get("mt"),
+        "badge_count": len(badges),
+        "hof_count": hof,
+        "attrs": row.get("attrs"),
+        "badges": badges,
+        "hotzones": row.get("hotzones") or None,
+        "animations": animations or None,
+        "plays": row.get("plays"),
+        "duos": duos or None,
+        "evos": evos or None,
     }
 
 
 def main() -> None:
     with open(FULL, "r", encoding="utf-8") as fh:
         pool = json.load(fh)
-    rows = [index_row(r) for r in pool.values() if r.get("version") == "2k27"]
+    rows = [index_row(r, pool) for r in pool.values() if r.get("version") == "2k27"]
     rows.sort(key=lambda r: (-(r["overall"] or 0), r["name"] or ""))
 
     os.makedirs(DATA, exist_ok=True)

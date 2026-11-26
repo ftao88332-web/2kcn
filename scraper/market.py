@@ -53,7 +53,7 @@ def compact_price(summary: dict, ts_iso: str) -> dict:
     if not summary:
         return {}
     plats = {p.get("platform"): p for p in (summary.get("averagePrices") or [])}
-    trends = {p.get("platform"): (p.get("points") or [])[-12:] for p in (summary.get("priceTrends") or [])}
+    trends = {p.get("platform"): (p.get("points") or [])[-30:] for p in (summary.get("priceTrends") or [])}
     latest = (summary.get("latestSales") or [])[:6]
     co, pc = plats.get("consoles") or {}, plats.get("pc") or {}
     return {

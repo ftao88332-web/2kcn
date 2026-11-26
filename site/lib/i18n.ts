@@ -67,9 +67,24 @@ export const BADGE_CN: Record<string, string> = {
   laid_back: "淡定", media_ringmaster: "媒体操盘手", work_ethic: "职业道德",
   blow_by: "一步过", bulldozer: "推土机", fast_feet: "快手快脚",
   open_looks: "空位嗅觉", free_points: "免费点数",
+  arc_cadence: "节奏弧线", boxout_boss: "卡位大师", breaker: "突破手",
+  bruiser: "重锤", crasher: "冲板狂人", finance_savvy: "理财头脑",
+  flash: "闪光快攻", ghost_stepper: "幽灵踏步", high_flying_denier: "飞天封盖",
+  immovable_enforcer: "不动铁闸", lightning_launch: "闪电启动", mini_marksman: "微型神射手",
+  pace: "节奏掌控", paint_patroller: "油漆区守卫", possession_closer: "球权终结者",
+  post_spin_catalyst: "背身转身催化剂", quick_trigger: "快速出手", seatbelt: "安全带护球",
+  set_and_fire: "定点开火", smooth_operator: "圆滑操盘手", static_middy: "定点中投",
+  sync_snatcher: "协同抢断", wall_up: "贴墙防守", warm_weather_fan: "热情主场",
 };
 
-export const TIER_CN: Record<number, string> = { 1: "铜", 2: "银", 3: "金", 4: "名人堂", 5: "传奇" };
+export const TIER_CN: Record<number, string> = { 1: "铜", 2: "银", 3: "金", 4: "青铜", 5: "绿宝石", 6: "翡翠", 7: "蓝宝石", 9: "红宝石", 10: "紫水晶", 11: "钻石", 12: "粉钻", 13: "银河", 14: "暗物质", 15: "GOAT", 21: "GOAT+" };
+
+/** tier → 稀有度色（近似 2kdb） */
+export const TIER_COLOR: Record<number, string> = {
+  4: "#CD7F32", 5: "#3FB950", 6: "#16C784", 7: "#4A90E2", 9: "#E5484D",
+  10: "#A371F7", 11: "#7DD3FC", 12: "#F472B6", 13: "#B762FF", 14: "#8B5CF6",
+  15: "#F59E0B", 21: "#FACC15",
+};
 
 export function attrCn(k: string): string {
   return ATTR_CN[k] ?? k.replace(/_/g, " ");
@@ -93,4 +108,37 @@ export function rarity(ovr: number | null | undefined): { text: string; border: 
   if (o >= 84) return { text: "text-yellow-300", border: "border-yellow-400/70" };
   if (o >= 80) return { text: "text-slate-200", border: "border-slate-400/60" };
   return { text: "text-orange-300", border: "border-orange-400/60" };
+}
+
+/* ---------------- 动作包（动画）分组与译名 ---------------- */
+export const ANIM_GROUPS: { en: string; cn: string; keys: string[] }[] = [
+  { en: "JUMP SHOT", cn: "投篮", keys: ["upper_release_a", "lower_base_a", "hop_jumper_a", "spin_jumper_a", "dribble_pull_up_a", "go_to_shot_a", "release_timing_a"] },
+  { en: "LAYUP / FINISH", cn: "上篮终结", keys: ["layup_package_a", "step_through_shot_a", "post_fade_a", "post_hook_a", "post_hop_shot_a", "post_go_to_shot_a", "free_throw_a"] },
+  { en: "DRIBBLE STYLE", cn: "运球风格", keys: ["dribble_style_a", "motion_style_a", "signature_size_up_a", "breakdown_combos_a", "crossover_combos_a", "crossover_escape_a", "hesitation_crossover_combo_a", "double_crossover_combo_a"] },
+  { en: "DRIBBLE ESCAPE", cn: "摆脱运球", keys: ["behind_the_back_escape_a", "behind_the_back_launch_a", "between_legs_escape_a", "crossover_escape_a", "hesitation_escape_a", "lateral_hesitation_a", "moving_behind_the_back_a", "moving_breakdown_combos_a", "moving_cross_spin_a", "moving_hesitation_a", "moving_spin_a", "moving_stepback_a", "lateral_stepback_a", "stepback_crossover_a"] },
+  { en: "TRIPLE THREAT", cn: "三威胁", keys: ["triple_threat_style_a", "triple_threat_breakdown_a", "triple_threat_jab_step_a", "triple_threat_stepover_a", "misdirection_crossover_a", "misdirection_behind_the_back_a", "misdirection_hesitation_a", "in_and_out_a"] },
+  { en: "OTHER", cn: "其他", keys: ["pass_style_a", "dunk_emotion_a", "chew_gum_a", "nba_jumpball_ritual_a", "pre_game_1_a", "pre_game_2_a"] },
+];
+
+export const ANIM_CN: Record<string, string> = {
+  upper_release_a: "上半身出手", lower_base_a: "下半身基础", hop_jumper_a: "跳步跳投",
+  spin_jumper_a: "转身跳投", dribble_pull_up_a: "运球急停", go_to_shot_a: "招牌跳投",
+  release_timing_a: "出手节奏", layup_package_a: "上篮包", step_through_shot_a: "跨步上篮",
+  post_fade_a: "背身后仰", post_hook_a: "背身勾手", post_hop_shot_a: "背身跳步",
+  post_go_to_shot_a: "背身招牌", free_throw_a: "罚球包", dribble_style_a: "运球风格",
+  motion_style_a: "移动风格", signature_size_up_a: "招牌试探步", breakdown_combos_a: "组合突破",
+  crossover_combos_a: "交叉组合", crossover_escape_a: "交叉摆脱", hesitation_crossover_combo_a: "犹豫交叉",
+  double_crossover_combo_a: "双交叉", behind_the_back_escape_a: "背后摆脱", behind_the_back_launch_a: "背后启动",
+  between_legs_escape_a: "胯下摆脱", hesitation_escape_a: "犹豫摆脱", lateral_hesitation_a: "横移犹豫",
+  moving_behind_the_back_a: "行进背后", moving_breakdown_combos_a: "行进突破组合", moving_cross_spin_a: "行进交叉转身",
+  moving_hesitation_a: "行进犹豫", moving_spin_a: "行进转身", moving_stepback_a: "行进后撤",
+  lateral_stepback_a: "横移后撤", stepback_crossover_a: "后撤交叉", triple_threat_style_a: "三威胁风格",
+  triple_threat_breakdown_a: "三威胁突破", triple_threat_jab_step_a: "三威胁试探步", triple_threat_stepover_a: "三威胁跨步",
+  misdirection_crossover_a: "误导交叉", misdirection_behind_the_back_a: "误导背后", misdirection_hesitation_a: "误导犹豫",
+  in_and_out_a: "内外运球", pass_style_a: "传球风格", dunk_emotion_a: "扣篮动作",
+  chew_gum_a: "嚼口香糖", nba_jumpball_ritual_a: "跳球仪式", pre_game_1_a: "赛前动作 1", pre_game_2_a: "赛前动作 2",
+};
+
+export function animCn(k: string): string {
+  return ANIM_CN[k] ?? k.replace(/_a$/, "").replace(/_/g, " ");
 }

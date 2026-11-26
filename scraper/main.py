@@ -163,9 +163,11 @@ def cmd_market(_args: argparse.Namespace) -> int:
     active_co, ids_co = _active_rows(mkt.fetch_market_overview(client) or {})
     active_pc, ids_pc = _active_rows(mkt.fetch_market_overview(client, platform="pc") or {})
 
-    hot = [int(k) for k, v in load_full().items() if (v.get("overall") or 0) >= 90]
+    pool = load_full()
+    # 全库补价：活跃榜 ∪ 库内全部卡（分批拉 summary，无成交的卡会落空）
+    hot = [int(k) for k in pool.keys()]
     ids = list(dict.fromkeys(ids_co + ids_pc + hot))
-    print(f"实时价覆盖 {len(ids)} 张（主机榜 {len(ids_co)} / PC 榜 {len(ids_pc)} / hot {len(hot)}）")
+    print(f"实时价覆盖 {len(ids)} 张（主机榜 {len(ids_co)} / PC 榜 {len(ids_pc)} / 全库 {len(hot)}）")
     mkt.write_site_prices(mkt.snapshot(client, ids), active_co, active_pc)
     return 0
 

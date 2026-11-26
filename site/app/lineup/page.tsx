@@ -102,6 +102,19 @@ export default function LineupPage() {
   const budget = priced.reduce((s, p) => s + p, 0);
   const basisLabel = basis === "co" ? "主机" : "PC";
 
+  // 阵容合理性校验：每个位置是否有人、是否有中锋
+  const warnings = useMemo(() => {
+    const w: string[] = [];
+    const byPos = new Map<string, number>();
+    for (const c of filled) for (const p of positionsOf(c)) byPos.set(p, (byPos.get(p) ?? 0) + 1);
+    const missingPos = POS.filter((p) => !byPos.get(p));
+    if (missingPos.length) w.push(`缺少 ${missingPos.join("、")} 位置的球员`);
+    const centers = filled.filter((c) => positionsOf(c).includes("C"));
+    if (filled.length >= 5 && centers.length === 0) w.push("阵容里没有中锋");
+    if (filled.length > 0 && filled.length < 5) w.push(`仅 ${filled.length} 人，不足一套首发`);
+    return w;
+  }, [filled]);
+
   function put(id: number) {
     if (slot == null) return;
     setIds((prev) => {
@@ -250,6 +263,11 @@ export default function LineupPage() {
           <b className="text-gain">{fmtMt(budget)}</b>
           {priced.length < filled.length && `（${priced.length}/${filled.length} 张有报价）`}
         </span>
+        {warnings.length > 0 && (
+          <span className="w-full rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-xs text-amber-300">
+            ⚠ {warnings.join("；")}
+          </span>
+        )}
         <div className="flex overflow-hidden rounded-lg border border-court-600 text-xs">
           {(["co", "pc"] as Basis[]).map((b) => (
             <button key={b} onClick={() => setBasis(b)}
