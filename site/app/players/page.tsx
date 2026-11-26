@@ -107,9 +107,11 @@ export default function PlayersPage() {
     f.evo = toTri(sp.get("evo"));
     f.duo = toTri(sp.get("duo"));
     setFilters(f);
-    if (sp.get("sort")) setSortKey(sp.get("sort")!);
+    const sk = sp.get("sort");
+    if (sk && SORTS.some((s) => s.key === sk)) setSortKey(sk);
     if (sp.get("desc")) setSortDesc(sp.get("desc") !== "0");
-    if (sp.get("basis")) setBasis(sp.get("basis") as Basis);
+    const bs = sp.get("basis");
+    if (bs === "co" || bs === "pc" || bs === "a") setBasis(bs);
     if (sp.get("view") === "table") setView("table");
     setOnlyFav(sp.get("fav") === "1");
     setReady(true);
