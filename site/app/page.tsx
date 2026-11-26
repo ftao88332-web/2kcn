@@ -57,8 +57,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3 市场概览（主机 + PC 两个价格池） */}
-      <section>
+      {/* 3 市场概览（主机 + PC 两个价格池）——手机端隐藏，避免首屏被行情挤满 */}
+      <section className="hidden sm:block">
         <div className="mb-3 flex items-baseline justify-between">
           <h2 className="text-lg font-bold text-white">市场概览 <span className="text-xs font-normal text-slate-500">主机 · PC 独立价格池</span></h2>
           <Link href="/market/" className="text-xs text-accent hover:underline">全部 →</Link>

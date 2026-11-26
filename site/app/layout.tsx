@@ -34,6 +34,7 @@ const NAV = [
   { href: "/", label: "首页" },
   { href: "/cards/", label: "球员卡" },
   { href: "/market/", label: "市场" },
+  { href: "/rankings/", label: "我的排名" },
   { href: "/compare/", label: "球员比较" },
   { href: "/lineup/", label: "我的阵容" },
   { href: "/updates/", label: "更新" },
