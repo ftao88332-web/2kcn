@@ -239,7 +239,7 @@ export default function LineupPage() {
 
       ctx.fillStyle = "#4A5065";
       ctx.font = "500 13px system-ui, sans-serif";
-      ctx.fillText(`2K中文库  ·  ftao88332-web.github.io/2kcn  ·  价格取自${basisLabel}端`, 48, H - 24);
+      ctx.fillText(`2K Card Lab  ·  ftao88332-web.github.io/2kcn  ·  价格取自${basisLabel}端`, 48, H - 24);
 
       cv.toBlob((blob) => {
         if (!blob) return;

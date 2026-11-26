@@ -1,4 +1,5 @@
-/** 属性/徽章中文词表（与 scraper/fields.py 对应，缺漏回退英文）。 */
+/** 属性/徽章中文词表（属性表与 scraper/fields.py 对应；徽章名称统一走 lib/badge-lexicon.ts）。 */
+import { badgeName } from "@/lib/badge-lexicon";
 
 export const ATTR_CN: Record<string, string> = {
   shot_close: "近距离投篮", shot_mid: "中距离", shot_3pt: "三分", free_throw: "罚球",
@@ -26,55 +27,10 @@ export const ATTR_GROUPS: { en: string; cn: string; keys: string[] }[] = [
   { en: "POTENTIAL", cn: "潜力", keys: ["intangibles", "potential"] },
 ];
 
-export const BADGE_CN: Record<string, string> = {
-  acrobat: "杂技上篮", aerial_wizard: "空中魔术师", backdown_punisher: "背身惩罚者",
-  bully: "强拳击打", consistent_finisher: "稳定终结", contact_finisher: "对抗终结",
-  cross_key_scorer: "临界得分", deep_hooks: "深位勾手", dream_shake: "梦幻舞步",
-  dropstepper: "欧洲步", fancy_footwork: "花式脚步", fearless_finisher: "无畏终结",
-  float_game: "抛投大师", flyer: "飞行者", giant_slayer: "巨人杀手",
-  layup_mixmaster: "上篮混音", paint_prodigy: "油漆区天赋", physical_finisher: "身体终结",
-  precision_dunker: "精准扣将", relentless_finisher: "不懈终结", rim_wrecker: "篮筐破坏者",
-  rise_up: "拔地而起", posterizer: "隔扣海报", poster: "隔扣",
-  quick_chain: "快速连招", hook_specialist: "勾手专家", post_powerhouse: "背身霸王",
-  slippery: "滑不留手", bigdriver: "大个突破", hyperdrive: "极速驱动",
-  athletic_finisher: "运动终结", deadeye: "神射手", limitless_range: "无限射程",
-  catch_and_shoot: "接球投篮", set_shots_specialist: "定投专家", shifty_shooter: "晃投",
-  slippery_off_ball: "无球摆脱", post_fade_phenom: "背身后仰大师", minimarksman: "迷你神枪",
-  agent_3: "特工三号", specialist: "专家", blink: "眨眼出手", twilight_zone: "暮区",
-  subzero: "绝对零度", brick_wall: "人墙", corner_specialist: "底角专家",
-  pace_breaker: "节奏破坏", range_extension: "射程延伸", midrange_deadeye: "中投死眼",
-  proficient_shooter: "熟练射手", quick_draw: "速射", ankle_assassin: "脚踝刺客",
-  dimer: "助攻手", handles_for_days: "运球永动机", strong_handle: "控球铁腕",
-  unpluckable: "不易被掏", versatile_visionary: "全能视野", bail_out: "救球",
-  break_starter: "快攻发起者", floor_general: "场上指挥官", glue_hands: "胶水手",
-  killer_combos: "致命连技", lob_city_passer: "空接派手", needle_threader: "穿针引线",
-  pass_fake_maestro: "假传大师", post_playmaker: "背身组织", special_delivery: "精准递球",
-  stop_and_go: "启停步", tight_handles: "紧持球", triple_threat_juke: "三威胁假动作",
-  vice_grip: "铁钳手", relay_passer: "中继传球", light_launcher: "轻启步",
-  anchor: "定海神针", ankle_braces: "护踝", ball_stripper: "掏球手",
-  boxout_beast: "挡人兽", challenger: "挑战者", chase_down_artist: "追帽艺术家",
-  clamps: "手掌锁", defensive_leader: "防守领袖", glove: "手套",
-  heart_crusher: "斗志粉碎", hustler: "拼命三郎", interceptor: "拦截者",
-  intimidator: "恐吓者", lightning_reflexes: "闪电反应", menace: "无球威胁",
-  moving_truck: "推土机", off_ball_pest: "无球纠缠", pick_dodger: "绕挡专家",
-  pick_pocket: "袋鼠手", pogo_stick: "弹簧腿", post_lockdown: "背身锁死",
-  post_move_lockdown: "背身动作锁死", rebound_chaser: "篮板猎人", rim_protector: "护筐者",
-  tireless_defender: "不知疲倦", trapper: "设陷者", work_horse: "劳模", worm: "蠕虫",
-  alpha_dog: "天之骄子", enforcer: "执行者", extremely_confident: "极度自信",
-  expressive: "表现欲", high_work_ethic: "高职业素养", legendary_work_ethic: "传奇素养",
-  pat_my_back: "自我激励", unpredictable: "不可预测", reserved: "低调",
-  friendly: "亲和", team_player: "团队至上", keep_it_real: "率真",
-  laid_back: "淡定", media_ringmaster: "媒体操盘手", work_ethic: "职业道德",
-  blow_by: "一步过", bulldozer: "推土机", fast_feet: "快手快脚",
-  open_looks: "空位嗅觉", free_points: "免费点数",
-  arc_cadence: "节奏弧线", boxout_boss: "卡位大师", breaker: "突破手",
-  bruiser: "重锤", crasher: "冲板狂人", finance_savvy: "理财头脑",
-  flash: "闪光快攻", ghost_stepper: "幽灵踏步", high_flying_denier: "飞天封盖",
-  immovable_enforcer: "不动铁闸", lightning_launch: "闪电启动", mini_marksman: "微型神射手",
-  pace: "节奏掌控", paint_patroller: "油漆区守卫", possession_closer: "球权终结者",
-  post_spin_catalyst: "背身转身催化剂", quick_trigger: "快速出手", seatbelt: "安全带护球",
-  set_and_fire: "定点开火", smooth_operator: "圆滑操盘手", static_middy: "定点中投",
-  sync_snatcher: "协同抢断", wall_up: "贴墙防守", warm_weather_fan: "热情主场",
+/** 徽章名称统一由词库提供（见 lib/badge-lexicon.ts），这里不再维护第二套译名。
+ *  徽章等级（与卡种档位是两套体系）名称也以词库 levels 为准，此处仅做旧代码兼容。 */
+export const BADGE_TIER_CN: Record<number, string> = {
+  1: "青铜", 2: "白银", 3: "黄金", 4: "名人堂", 5: "传奇",
 };
 
 /** 卡种（Gem Tier）：2K27 里 90 分以上每个总评都有独立的宝石档 */
@@ -89,11 +45,6 @@ export const TIER_EN: Record<number, string> = {
   13: "Dark Matter", 14: "Pixel", 15: "Magma", 21: "G.O.A.T.",
 };
 
-/** 徽章等级（与卡种档位是两套体系） */
-export const BADGE_TIER_CN: Record<number, string> = {
-  1: "铜", 2: "银", 3: "金", 4: "名人堂", 5: "传奇",
-};
-
 /** tier → 稀有度色（近似 2kdb 卡面配色） */
 export const TIER_COLOR: Record<number, string> = {
   4: "#E3B341", 5: "#2ECC71", 6: "#4A90E2", 7: "#E5484D",
@@ -105,10 +56,10 @@ export const TIER_COLOR: Record<number, string> = {
 export function attrCn(k: string): string {
   return ATTR_CN[k] ?? k.replace(/_/g, " ");
 }
+/** 兼容旧调用：名称走统一徽章词库 */
 export function badgeCn(slug: string): { name: string; zh: boolean } {
-  const cn = BADGE_CN[slug];
-  if (cn) return { name: cn, zh: true };
-  return { name: slug.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()), zh: false };
+  const { zh, known } = badgeName(slug);
+  return { name: zh, zh: known };
 }
 
 /** OVR → 稀有度色（按 2K27 卡种档位对齐） */

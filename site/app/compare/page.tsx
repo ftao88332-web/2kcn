@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePrices } from "@/lib/use-prices";
 import { priceOfId, withBase, PLATFORMS } from "@/lib/core";
 import { CARDS, QueryCard, quickSearch, stat, positionsOf } from "@/lib/services/cards";
+import { BADGES, holdersOf } from "@/lib/services/badges";
+import BadgeItem from "@/components/badge-item";
 import { TIER_CN } from "@/lib/i18n";
 import { weightText, mtText } from "@/lib/units";
 
@@ -94,6 +96,15 @@ export default function ComparePage() {
     () => ids.map((id) => CARDS.find((c) => c.id === id)).filter(Boolean) as QueryCard[],
     [ids]
   );
+
+  // 每张卡拥有的徽章（来自徽章反查索引，名称走统一词库）
+  const badgeLists = useMemo(() => {
+    const m = new Map<number, string[]>();
+    for (const c of picked) {
+      m.set(c.id, BADGES.filter((b) => holdersOf(b.badge_id).includes(c.id)).map((b) => b.badge_id));
+    }
+    return m;
+  }, [picked]);
   const results = useMemo(
     () => (q.trim() ? quickSearch(q, 8).filter((c) => !ids.includes(c.id)) : []),
     [q, ids]
@@ -201,6 +212,25 @@ export default function ComparePage() {
                 cells={picked.map((c) => ({ c, v: c.wingspan_cm ? `${(c.wingspan_cm / 100).toFixed(2)} m` : "—" }))} />
               <StatTr label="徽章"
                 cells={picked.map((c) => ({ c, v: `${c.badge_count ?? 0} 个（名人堂 ${c.hof_count ?? 0}）` }))} />
+              <tr className="border-t border-court-600/60">
+                <td className="px-3 py-2 text-[11px] text-muted">独有徽章</td>
+                {picked.map((c) => {
+                  const mine = badgeLists.get(c.id) ?? [];
+                  const others = new Set(picked.filter((x) => x.id !== c.id).flatMap((x) => badgeLists.get(x.id) ?? []));
+                  const only = mine.filter((id) => !others.has(id)).slice(0, 12);
+                  return (
+                    <td key={c.id} className="px-3 py-2 align-top">
+                      {only.length ? (
+                        <div className="flex flex-wrap gap-1">
+                          {only.map((id) => <BadgeItem key={id} badgeId={id} />)}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-500">—</span>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
 
               {GROUPS.map((g) => (
                 <Fragment key={g.en}>

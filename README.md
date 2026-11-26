@@ -1,6 +1,10 @@
-# 2kCN · NBA 2K27 MyTEAM 数据库 / 行情
+# 2K Card Lab · NBA 2K MyTEAM 数据平台
 
 线上：<https://ftao88332-web.github.io/2kcn/>
+
+品牌：**2K Card Lab**（简称 Card Lab）· 中文副标题「NBA 2K MyTEAM 数据平台」·
+英文描述「MyTEAM Database & Market Analytics」· 默认简体中文 / Dark 主题。
+（旧名「2K 中文库」已停用。）
 
 纯静态、零成本：GitHub Actions 抓取 → Next.js 导出 → `gh-pages`。
 只收录 **2K27**，没有数据库、没有图床、没有服务器。
@@ -10,18 +14,20 @@
 ```
 scraper/
   common.py           配置 + HTTP 客户端 + 图片存储
-  parse.py            页面解析 + 字段规范化
+  parse.py            页面解析 + 字段规范化（统一单位：height/wingspan=cm，weight 同时存 lb 与 kg）
   main.py             CLI：parse / full27 / rescrape / market
   market.py           实时行情 → site/public/data/prices.json
   out/cards_full.json 唯一数据源（卡池）
 scripts/
-  build_index.py      cards_full → site/data/cards.json + cards_index.json
+  build_index.py      cards_full → cards.json / cards_index.json / badge_index.json
   publish_prices.py   只把 prices.json 写到 gh-pages（不重建站点）
 site/
-  app/                首页 / 卡库 / 详情 / 市场 / 阵容
-  components/         卡片瓦片、详情区块（属性/徽章/半场热区）、行情面板
-  lib/core.ts         类型、路径、行情读取
-  lib/i18n.ts         中英文词表
+  app/                首页 / 球员卡 / 详情 / 市场 / 比较 / 阵容 / 更新 / 徽章库
+  components/         卡片瓦片、统一徽章组件、详情 Tabs、行情面板
+  lib/data/badges.2k27.json  徽章词库（53 条官方词库 + 15 条词库外）
+  lib/badge-lexicon.ts       徽章名称/分类/等级查询
+  lib/services/              卡库、徽章、单位等服务层（全站共用）
+  lib/i18n.ts         属性/卡种/动作包词表（不再维护徽章译名）
   public/img/         卡面图（自托管）
   public/data/        prices.json
 .github/workflows/    抓取 + 构建发布 + 15 分钟行情
@@ -83,10 +89,27 @@ GitHub 自带的 cron 留着当兜底，重复触发无副作用（`concurrency`
 
 ## 卡库与市场
 
-- `/players/`：位置 / 卡种 / 球队 / 系列 / 总评 / 徽章数 / 身高 / 价格 / 可交易等多维筛选，
-  按总评、价格、三分、运球、外防等维度排序，卡片 / 表格双视图；支持本地收藏夹（`localStorage`）。
-- `/market/`：活跃成交榜，以及价格最高 / 成交量 / 涨幅 / 跌幅榜，主机 / PC 端可切换。
-- 详情页：攻防总评、动作包（投篮 / 上篮 / 运球 / 三威胁）、双人组、进化路线、打法倾向、徽章与热区。
+- `/cards/`（兼容 `/players/`）：名称 / 总评区间 / 位置 / 卡种 / 系列 / 徽章数区间 / **指定徽章** /
+  价格区间 / 可交易 / 进化 / 双人组 等维度筛选；卡片 / 表格双视图；支持收藏夹（`localStorage`）。
+  所有筛选条件同步到 URL（`?pos=PG,SG&minOvr=95&...`），刷新与分享可还原。
+- `/market/`：市场概况（活跃卡、成交总量、均价、最近更新）+ 活跃成交 / 价格最高 / 成交量 / 涨幅 / 跌幅榜，主机 / PC 可切换。
+- 详情页 `/card/:id/`（兼容 `/player/:id/`）：六个 Tab —— 概览 / 属性 / 徽章 / 动作包 / 热区 / 行情。
+- `/compare/`：2–4 张卡横向对比，含独有徽章与主机 / PC 价格。
+- `/lineup/`：15 人阵容，平均总评 + 总造价，缺价明确提示不按 0 计。
+
+## 徽章词库（V1.0 定版）
+
+徽章名称与等级**只有一份来源**：`site/lib/data/badges.2k27.json`。
+
+- 53 条采用 [2kAuction 2K27 简体中文词库](https://2kauction.com/zh-hans/badges?game=2k27)（`translation_status: source_adopted`），
+  分类：终结 11 / 投篮 9 / 组织 10 / 防守 12 / 篮板 5 / 体格 6。
+- 15 条性格类徽章不在该词库内，沿用站内既有译名并标 `legacy_unverified`，待官方核对后按 `badge_id` 更新。
+- 旧译名不丢弃，作为搜索别名保留（如 `aerial_wizard` → 正式名「空中作业」，别名「空中魔术师」）。
+- 徽章等级固定：青铜 / 白银 / 黄金 / 名人堂，另保留「传奇」（仅 2K27 G.O.A.T. 卡出现，词库未定义该档）。
+  **徽章等级与卡片宝石档位是两套完全独立的体系**，不得互相替代。
+- 所有页面（详情 / 卡库筛选 / 比较器 / 徽章库）统一使用 `components/badge-item.tsx` 与 `lib/services/badges.ts`，
+  不允许各页另存词表。
+- 数据层关系：`Card` 存 `gem_tier`（宝石档），`CardBadge` 存 `badge_id + tier`（徽章等级），互不混用。
 
 ## 边界
 

@@ -1,27 +1,25 @@
 "use client";
 
+import { useState } from "react";
 import { IndexCard, withBase } from "@/lib/core";
 import { weightText, lengthText } from "@/lib/units";
-import { TIER_CN, TIER_EN, TIER_COLOR, BADGE_TIER_CN, badgeCn, rarity } from "@/lib/i18n";
+import { TIER_CN, TIER_EN, TIER_COLOR } from "@/lib/i18n";
+import { LEVELS } from "@/lib/badge-lexicon";
 import { AttrsGroups, BadgesGrid, Hotzones, AnimationsGrid, DuoRow, EvoRow } from "@/components/detail-sections";
+import BadgeItem from "@/components/badge-item";
 import PricePanel from "@/components/price-panel";
 import { useFavorites } from "@/lib/use-favorites";
 
-const cm = (v?: number | null) => (v ? (v / 100).toFixed(2) + " m" : "-");
-function Section({ title, aside, children }: {
-  title: string; aside?: React.ReactNode; children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-xl border border-court-600 bg-court-800 p-5 shadow-lg shadow-black/20 sm:p-6">
-      <div className="mb-4 flex items-center gap-2.5">
-        <span className="h-4 w-1 shrink-0 rounded-full bg-accent" />
-        <h2 className="text-base font-bold text-ink">{title}</h2>
-        {aside != null && <span className="ml-auto text-xs text-muted">{aside}</span>}
-      </div>
-      {children}
-    </section>
-  );
-}
+type Tab = "overview" | "attributes" | "badges" | "animations" | "hotzones" | "market";
+
+const TABS: { key: Tab; label: string; en: string }[] = [
+  { key: "overview", label: "概览", en: "Overview" },
+  { key: "attributes", label: "属性", en: "Attributes" },
+  { key: "badges", label: "徽章", en: "Badges" },
+  { key: "animations", label: "动作包", en: "Animations" },
+  { key: "hotzones", label: "热区", en: "Hot Zones" },
+  { key: "market", label: "行情", en: "Market" },
+];
 
 function Meta({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -38,8 +36,7 @@ function badgeSummary(badges: Record<string, unknown>): string {
     const n = Number(v);
     if (Number.isFinite(n) && n > 0) c[n] = (c[n] ?? 0) + 1;
   }
-  return [5, 4, 3, 2, 1].filter((t) => c[t])
-    .map((t) => `${BADGE_TIER_CN[t]}×${c[t]}`).join(" · ") || "暂无徽章";
+  return LEVELS.filter((l) => c[l.tier]).map((l) => `${l.name_zh}×${c[l.tier]}`).join(" · ") || "暂无徽章";
 }
 
 export default function PlayerDetail({ card }: { card: IndexCard }) {
@@ -51,14 +48,18 @@ export default function PlayerDetail({ card }: { card: IndexCard }) {
 function PlayerDetailInner({ card, badges, hz }: { card: IndexCard; badges: Record<string, number>; hz: Record<string, unknown> }) {
   const { has, toggle } = useFavorites();
   const fav = has(card.id);
+  const [tab, setTab] = useState<Tab>("overview");
   const topBadges = Object.entries(badges)
     .map(([slug, tier]) => ({ slug, tier: Number(tier) }))
     .filter((b) => b.tier > 0)
     .sort((a, b) => b.tier - a.tier)
     .slice(0, 6);
+  const hasHz = Object.keys(hz).length > 0;
+  const hasAnim = card.animations && Object.keys(card.animations).length > 0;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      {/* Header：名称 / OVR / 位置 / 系列 */}
       <section className="rounded-xl border border-court-600 bg-court-800 p-5 shadow-lg shadow-black/20 sm:p-6">
         <div className="grid gap-5 md:grid-cols-[auto,1fr]">
           <div className="w-fit rounded-xl border border-court-600 bg-court-700/60 p-1.5">
@@ -73,7 +74,7 @@ function PlayerDetailInner({ card, badges, hz }: { card: IndexCard; badges: Reco
             )}
           </div>
 
-          <div className="flex min-w-0 flex-col justify-between gap-4">
+          <div className="flex min-w-0 flex-col justify-between gap-3">
             <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
               <p className="text-7xl font-black leading-none text-accent sm:text-8xl">{card.overall ?? "?"}</p>
               <div className="min-w-0 pb-1">
@@ -88,6 +89,9 @@ function PlayerDetailInner({ card, badges, hz }: { card: IndexCard; badges: Reco
                 <p className="mt-1.5 text-sm text-muted">
                   {card.position ?? ""}{card.sec ? ` / ${card.sec}` : ""}
                   {" · "}<span className="text-ink/90">{card.team ?? "自由球员"}</span>
+                  {(card.theme || card.collection) && (
+                    <span className="ml-1.5 text-slate-500">· {card.theme || card.collection}</span>
+                  )}
                   {card.tier != null && (
                     <span className="ml-2 inline-flex items-center gap-1 rounded border px-1.5 py-0.5 align-middle text-[11px]"
                       style={{
@@ -106,6 +110,8 @@ function PlayerDetailInner({ card, badges, hz }: { card: IndexCard; badges: Reco
                     进攻总评 <b className="text-ink/90">{card.off_overall ?? "-"}</b>
                     <span className="mx-1.5 opacity-60">·</span>
                     防守总评 <b className="text-ink/90">{card.def_overall ?? "-"}</b>
+                    <span className="mx-1.5 opacity-60">·</span>
+                    徽章 <b className="text-ink/90">{card.badge_count ?? Object.values(badges).filter((v) => v > 0).length}</b>
                   </p>
                 )}
               </div>
@@ -113,53 +119,108 @@ function PlayerDetailInner({ card, badges, hz }: { card: IndexCard; badges: Reco
 
             {topBadges.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
-                {topBadges.map((b) => {
-                  const { name, zh } = badgeCn(b.slug);
-                  return (
-                    <span key={b.slug} className="rounded border border-court-600 bg-court-900/60 px-1.5 py-0.5 text-[11px] text-muted">
-                      <span className="font-semibold text-ink">{name}</span>
-                      <span className="ml-1 text-[10px]">{BADGE_TIER_CN[b.tier] ?? ""}</span>
-                      {!zh && <span className="ml-0.5 text-[9px] opacity-70">EN</span>}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-court-600 pt-4 sm:grid-cols-3 lg:grid-cols-5">
-              <Meta label="身高" value={lengthText(card.height_cm)} />
-              <Meta label="臂展" value={lengthText(card.wingspan_cm)} />
-              <Meta label="体重" value={weightText(card.weight_kg, card.weight_lb, { withLb: true })} />
-              <Meta label="卡种" value={card.version?.toUpperCase()} />
-              <Meta label="卡包 / 系列" value={card.theme || card.collection || "-"} />
-            </div>
-
-            {card.plays && card.plays.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {card.plays.map((p) => (
-                  <span key={p} className="rounded border border-court-600 bg-court-900/60 px-1.5 py-0.5 text-[11px] text-muted">{p}</span>
-                ))}
+                {topBadges.map((b) => <BadgeItem key={b.slug} badgeId={b.slug} tier={b.tier} />)}
               </div>
             )}
           </div>
         </div>
       </section>
 
-      <Section title="属性"><AttrsGroups attrs={(card.attrs ?? {}) as Record<string, unknown>} /></Section>
-      <Section title="徽章" aside={badgeSummary(badges)}><BadgesGrid badges={badges} /></Section>
-      {Object.keys(hz).length > 0 && <Section title="投篮热区"><Hotzones hz={hz} /></Section>}
-      {card.animations && Object.keys(card.animations).length > 0 && (
-        <Section title="动作包"><AnimationsGrid animations={card.animations as Record<string, unknown>} /></Section>
+      {/* 六个 Tab */}
+      <nav className="sticky top-14 z-20 -mx-1 flex gap-1 overflow-x-auto rounded-xl border border-court-600 bg-court-800/95 p-1.5 backdrop-blur">
+        {TABS.map((t) => {
+          const disabled = (t.key === "hotzones" && !hasHz) || (t.key === "animations" && !hasAnim);
+          return (
+            <button key={t.key} disabled={disabled} onClick={() => setTab(t.key)}
+              className={`shrink-0 rounded-lg px-3 py-1.5 text-xs transition ${
+                tab === t.key ? "bg-accent/20 text-accent" : disabled ? "text-slate-600" : "text-slate-400 hover:text-ink"
+              }`}>
+              {t.label}
+              <span className="ml-1 hidden text-[10px] opacity-60 sm:inline">{t.en}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      {tab === "overview" && (
+        <>
+          <section className="rounded-xl border border-court-600 bg-court-800 p-5">
+            <h2 className="mb-4 text-base font-bold text-ink">基本信息</h2>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 lg:grid-cols-5">
+              <Meta label="身高" value={lengthText(card.height_cm)} />
+              <Meta label="臂展" value={lengthText(card.wingspan_cm)} />
+              <Meta label="体重" value={weightText(card.weight_kg, card.weight_lb, { withLb: true })} />
+              <Meta label="卡种" value={card.version?.toUpperCase()} />
+              <Meta label="卡包 / 系列" value={card.theme || card.collection || "-"} />
+              <Meta label="主位置 / 副位置" value={`${card.position ?? "-"}${card.sec ? ` / ${card.sec}` : ""}`} />
+              <Meta label="上线日期" value={card.released_at ?? "-"} />
+              <Meta label="徽章总数" value={`${Object.values(badges).filter((v) => v > 0).length} 个`} />
+            </div>
+            {card.plays && card.plays.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-1.5 border-t border-court-600 pt-4">
+                <span className="text-[11px] text-muted">打法标签</span>
+                {card.plays.map((p) => (
+                  <span key={p} className="rounded border border-court-600 bg-court-900/60 px-1.5 py-0.5 text-[11px] text-muted">{p}</span>
+                ))}
+              </div>
+            )}
+          </section>
+          {card.duos && card.duos.length > 0 && (
+            <section className="rounded-xl border border-court-600 bg-court-800 p-5">
+              <h2 className="mb-3 text-base font-bold text-ink">双人组</h2>
+              <DuoRow duos={card.duos} />
+            </section>
+          )}
+          {card.evos && card.evos.length > 0 && (
+            <section className="rounded-xl border border-court-600 bg-court-800 p-5">
+              <h2 className="mb-3 text-base font-bold text-ink">进化路线</h2>
+              <EvoRow evos={card.evos} />
+            </section>
+          )}
+        </>
       )}
-      {card.duos && card.duos.length > 0 && (
-        <Section title="双人组"><DuoRow duos={card.duos} /></Section>
+
+      {tab === "attributes" && (
+        <section className="rounded-xl border border-court-600 bg-court-800 p-5">
+          <h2 className="mb-4 text-base font-bold text-ink">属性</h2>
+          <AttrsGroups attrs={(card.attrs ?? {}) as Record<string, unknown>} />
+        </section>
       )}
-      {card.evos && card.evos.length > 0 && (
-        <Section title="进化路线"><EvoRow evos={card.evos} /></Section>
+
+      {tab === "badges" && (
+        <section className="rounded-xl border border-court-600 bg-court-800 p-5">
+          <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-ink">
+            徽章 <span className="text-xs font-normal text-muted">{badgeSummary(badges)}</span>
+          </h2>
+          <BadgesGrid badges={badges} />
+          <p className="mt-3 text-[11px] text-slate-500">
+            徽章等级（{LEVELS.map((l) => l.name_zh).join(" / ")}）与卡片宝石档位是两套独立体系，本页只表示徽章强度。
+          </p>
+        </section>
       )}
-      <Section title="拍卖行 & 成交历史" aside={`全站快照 · ${card.overall ?? "?"} OVR`}>
-        <PricePanel cardId={card.id} />
-      </Section>
+
+      {tab === "animations" && hasAnim && (
+        <section className="rounded-xl border border-court-600 bg-court-800 p-5">
+          <h2 className="mb-4 text-base font-bold text-ink">动作包</h2>
+          <AnimationsGrid animations={card.animations as Record<string, unknown>} />
+        </section>
+      )}
+
+      {tab === "hotzones" && hasHz && (
+        <section className="rounded-xl border border-court-600 bg-court-800 p-5">
+          <h2 className="mb-4 text-base font-bold text-ink">投篮热区</h2>
+          <Hotzones hz={hz} />
+        </section>
+      )}
+
+      {tab === "market" && (
+        <section className="rounded-xl border border-court-600 bg-court-800 p-5">
+          <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-ink">
+            拍卖行 & 成交历史 <span className="text-xs font-normal text-muted">全站快照 · {card.overall ?? "?"} OVR</span>
+          </h2>
+          <PricePanel cardId={card.id} />
+        </section>
+      )}
     </div>
   );
 }

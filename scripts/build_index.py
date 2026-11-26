@@ -133,7 +133,21 @@ def main() -> None:
     # 只有这些 id 才有详情页；行情榜里可能有库里暂时没有的卡，前端据此避免死链
     with open(os.path.join(DATA, "card_ids.json"), "w", encoding="utf-8", newline="\n") as fh:
         json.dump(sorted(r["id"] for r in rows), fh, separators=(",", ":"))
-    print(f"cards.json {len(rows)} 行 / cards_index.json {len(lean)} 行 / card_ids.json {len(rows)} 个")
+
+    # 徽章反向索引：badge_id -> 拥有它的卡（供徽章库与卡库"指定徽章"筛选用）
+    badge_index: dict[str, dict] = {}
+    for r in rows:
+        for slug, tier in (r.get("badges") or {}).items():
+            if not isinstance(tier, int) or tier <= 0:
+                continue
+            entry = badge_index.setdefault(slug, {"n": 0, "t": {}, "cards": []})
+            entry["n"] += 1
+            entry["t"][str(tier)] = entry["t"].get(str(tier), 0) + 1
+            entry["cards"].append(r["id"])
+    with open(os.path.join(DATA, "badge_index.json"), "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(badge_index, fh, ensure_ascii=False, separators=(",", ":"))
+
+    print(f"cards.json {len(rows)} 行 / cards_index.json {len(lean)} 行 / card_ids.json {len(rows)} 个 / badge_index.json {len(badge_index)} 个徽章")
 
 
 if __name__ == "__main__":

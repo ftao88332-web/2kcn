@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ATTR_CN, ATTR_GROUPS, BADGE_TIER_CN, attrCn, badgeCn, ANIM_GROUPS, animCn } from "@/lib/i18n";
+import { ATTR_CN, ATTR_GROUPS, attrCn, ANIM_GROUPS, animCn } from "@/lib/i18n";
+import { BADGES, LEVELS, badgeName } from "@/lib/badge-lexicon";
+import BadgeItem from "@/components/badge-item";
 import type { IndexCard } from "@/lib/core";
 
 /* ---------------- 属性 ---------------- */
@@ -46,43 +48,49 @@ export function AttrsGroups({ attrs }: { attrs: Record<string, unknown> }) {
 }
 
 /* ---------------- 徽章 ---------------- */
-const TIER_STYLE: Record<number, string> = {
-  5: "border-[#B762FF]/70 bg-[#B762FF]/10 text-[#D9A9FF]",
-  4: "border-[#B762FF]/60 bg-[#B762FF]/10 text-[#C48CFF]",
-  3: "border-[#FFC845]/50 bg-[#FFC845]/10 text-[#FFC845]",
-  2: "border-[#C5CDDB]/40 bg-[#C5CDDB]/10 text-[#C5CDDB]",
-  1: "border-[#B88646]/60 bg-[#B88646]/10 text-[#CE9B5C]",
-};
-const COLLAPSED = 24;
-
 export function BadgesGrid({ badges }: { badges: Record<string, number> }) {
-  const [showAll, setShowAll] = useState(false);
-  const owned = Object.entries(badges).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  const [level, setLevel] = useState<number | null>(null);
+  const owned = Object.entries(badges)
+    .filter(([, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   if (!owned.length) return <p className="text-sm text-muted">该卡暂无已解锁徽章。</p>;
-  const list = showAll ? owned : owned.slice(0, COLLAPSED);
+
+  const counts = new Map<number, number>();
+  for (const [, tier] of owned) counts.set(tier, (counts.get(tier) ?? 0) + 1);
+  const shown = level == null ? owned : owned.filter(([, tier]) => tier === level);
+
   return (
-    <div>
-      <div className="flex flex-wrap gap-2">
-        {list.map(([slug, tier]) => {
-          const { name, zh } = badgeCn(slug);
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-1.5 text-xs">
+        <button onClick={() => setLevel(null)}
+          className={`rounded-md border px-2 py-1 ${level == null ? "border-accent bg-accent/15 text-accent" : "border-court-600 text-slate-400"}`}>
+          全部 {owned.length}
+        </button>
+        {[4, 3, 2, 1, 5].map((t) => {
+          const n = counts.get(t) ?? 0;
+          if (!n) return null;
+          const lv = LEVELS.find((l) => l.tier === t);
           return (
-            <span key={slug}
-              className={`inline-flex cursor-default items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs ${TIER_STYLE[tier] ?? "border-court-600 bg-court-700 text-ink/80"}`}
-              title={`${slug} · ${BADGE_TIER_CN[tier] ?? ""}`}>
-              <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
-              <span className="font-semibold">{name}</span>
-              <span className="text-[10px] opacity-80">{BADGE_TIER_CN[tier] ?? tier}</span>
-              {!zh && <span className="text-[9px] opacity-60">EN</span>}
-            </span>
+            <button key={t} onClick={() => setLevel(level === t ? null : t)}
+              className="rounded-md border px-2 py-1"
+              style={{
+                borderColor: level === t ? `${lv?.color ?? "#666"}` : "rgba(41,57,77,1)",
+                background: level === t ? `${lv?.color ?? "#666"}22` : "transparent",
+                color: lv?.color ?? "#94A3B8",
+              }}>
+              {lv?.name_zh ?? t} {n}
+            </button>
           );
         })}
+        <span className="ml-auto text-[11px] text-slate-500">
+          词库：2kAuction 2K27 简体中文 · 共 {BADGES.length} 条
+        </span>
       </div>
-      {owned.length > COLLAPSED && (
-        <button onClick={() => setShowAll(!showAll)}
-          className="mt-4 rounded-md border border-court-600 px-3 py-1.5 text-xs text-accent hover:border-accent/60 hover:bg-accent/10">
-          {showAll ? "折叠" : `展开全部 ${owned.length} 个徽章`}
-        </button>
-      )}
+      <div className="flex flex-wrap gap-1.5">
+        {shown.map(([slug, tier]) => (
+          <BadgeItem key={slug} badgeId={slug} tier={tier} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -148,7 +156,7 @@ export function EvoRow({ evos }: { evos: NonNullable<IndexCard["evos"]> }) {
             <div className="mt-2 flex flex-wrap gap-1.5">
               {e.gains.map((g) => (
                 <span key={g.k} className="rounded bg-court-700/60 px-1.5 py-0.5 text-[11px] text-ink/90">
-                  {ATTR_CN[g.k] ?? badgeCn(g.k).name}{" "}
+                  {ATTR_CN[g.k] ?? badgeName(g.k).zh}{" "}
                   <span className="font-bold text-accent">+{g.d}</span>
                 </span>
               ))}

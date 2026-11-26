@@ -8,6 +8,9 @@ import { TIER_CN, TIER_EN, TIER_COLOR, rarity } from "@/lib/i18n";
 import CardTile from "@/components/card-tile";
 import { useFavorites } from "@/lib/use-favorites";
 import { CARDS, QueryCard, stat, positionsOf } from "@/lib/services/cards";
+import { holdersOf, searchBadges } from "@/lib/services/badges";
+import { CATEGORIES, badgeName } from "@/lib/badge-lexicon";
+import BadgeItem from "@/components/badge-item";
 
 const ALL = CARDS as QueryCard[];
 const PAGE = 60;
@@ -43,17 +46,20 @@ interface Filters {
   minOvr: number;
   maxOvr: number;
   minBadges: number;
+  maxBadges: number;
   minHeight: number;
   maxPrice: number | null;
+  minPrice: number | null;
   tradable: boolean | null;
   evo: boolean | null;
   duo: boolean | null;
+  badges: string[];
 }
 
 const emptyFilters = (): Filters => ({
   q: "", pos: [], tier: [], team: "", collection: "",
-  minOvr: 0, maxOvr: 99, minBadges: 0, minHeight: 0, maxPrice: null,
-  tradable: null, evo: null, duo: null,
+  minOvr: 0, maxOvr: 99, minBadges: 0, maxBadges: 99, minHeight: 0,
+  maxPrice: null, minPrice: null, tradable: null, evo: null, duo: null, badges: [],
 });
 
 /** 索引里的关键属性（索引不带 attrs，统一走 stats） */
@@ -78,6 +84,8 @@ export default function PlayersPage() {
   const [view, setView] = useState<"grid" | "table">("grid");
   const [shown, setShown] = useState(PAGE);
   const [ready, setReady] = useState(false);
+  const [badgeQ, setBadgeQ] = useState("");
+  const [badgeCat, setBadgeCat] = useState<string>("all");
 
   const teams = useMemo(() => [...new Set(ALL.map((c) => c.team).filter(Boolean) as string[])].sort(), []);
   const collections = useMemo(() => [...new Set(ALL.map((c) => c.collection).filter(Boolean) as string[])].sort(), []);
@@ -101,11 +109,14 @@ export default function PlayersPage() {
     f.minOvr = Number(sp.get("minOvr") ?? 0) || 0;
     f.maxOvr = Number(sp.get("maxOvr") ?? 99) || 99;
     f.minBadges = Number(sp.get("minBadge") ?? 0) || 0;
+    f.maxBadges = sp.get("maxBadge") ? Number(sp.get("maxBadge")) : 99;
     f.minHeight = Number(sp.get("minH") ?? 0) || 0;
     f.maxPrice = sp.get("maxPrice") ? Number(sp.get("maxPrice")) : null;
+    f.minPrice = sp.get("minPrice") ? Number(sp.get("minPrice")) : null;
     f.tradable = toTri(sp.get("tradable"));
     f.evo = toTri(sp.get("evo"));
     f.duo = toTri(sp.get("duo"));
+    f.badges = (sp.get("badges") ?? "").split(",").filter(Boolean);
     setFilters(f);
     const sk = sp.get("sort");
     if (sk && SORTS.some((s) => s.key === sk)) setSortKey(sk);
@@ -132,8 +143,11 @@ export default function PlayersPage() {
     put("minOvr", filters.minOvr);
     put("maxOvr", filters.maxOvr === 99 ? null : filters.maxOvr);
     put("minBadge", filters.minBadges);
+    put("maxBadge", filters.maxBadges === 99 ? null : filters.maxBadges);
+    put("badges", filters.badges.join(","));
     put("minH", filters.minHeight);
     put("maxPrice", filters.maxPrice);
+    put("minPrice", filters.minPrice);
     if (filters.tradable !== null) sp.set("tradable", filters.tradable ? "1" : "0");
     if (filters.evo !== null) sp.set("evo", filters.evo ? "1" : "0");
     if (filters.duo !== null) sp.set("duo", filters.duo ? "1" : "0");
@@ -148,10 +162,13 @@ export default function PlayersPage() {
 
   const filtered = useMemo(() => {
     const kw = filters.q.trim().toLowerCase();
+    // 指定徽章：多选为 AND（同时拥有），用反查索引的集合判断
+    const badgeSets = filters.badges.map((id) => new Set(holdersOf(id)));
     return ALL.filter((c) => {
       if ((c.overall ?? 0) < filters.minOvr) return false;
       if ((c.overall ?? 0) > filters.maxOvr) return false;
       if ((c.badge_count ?? 0) < filters.minBadges) return false;
+      if ((c.badge_count ?? 0) > filters.maxBadges) return false;
       if ((c.height_cm ?? 0) < filters.minHeight) return false;
       if (filters.pos.length && !filters.pos.some((p) => positionsOf(c).includes(p))) return false;
       if (filters.tier.length && !filters.tier.includes(String(c.tier))) return false;
@@ -159,8 +176,10 @@ export default function PlayersPage() {
       if (filters.collection && c.collection !== filters.collection) return false;
       if (filters.evo !== null && Boolean(c.has_evo) !== filters.evo) return false;
       if (filters.duo !== null && Boolean(c.has_duo) !== filters.duo) return false;
+      if (badgeSets.some((s) => !s.has(c.id))) return false;
       const p = priceOf(c);
       if (filters.maxPrice != null && (p == null || p > filters.maxPrice)) return false;
+      if (filters.minPrice != null && (p == null || p < filters.minPrice)) return false;
       if (filters.tradable != null) {
         const hasPrice = p != null;
         if (filters.tradable !== hasPrice) return false;
@@ -206,14 +225,22 @@ export default function PlayersPage() {
     ...(filters.evo !== null ? [{ k: "evo", label: filters.evo ? "可进化" : "无进化", clear: () => setFilters({ ...filters, evo: null }) }] : []),
     ...(filters.duo !== null ? [{ k: "duo", label: filters.duo ? "有双人组" : "无双人组", clear: () => setFilters({ ...filters, duo: null }) }] : []),
     ...(filters.maxPrice != null ? [{ k: "price", label: `价格 ≤ ${filters.maxPrice.toLocaleString()}`, clear: () => setFilters({ ...filters, maxPrice: null }) }] : []),
+    ...(filters.minPrice != null ? [{ k: "priceMin", label: `价格 ≥ ${filters.minPrice.toLocaleString()}`, clear: () => setFilters({ ...filters, minPrice: null }) }] : []),
+    ...filters.badges.map((id) => ({
+      k: `badge:${id}`,
+      label: `徽章 ${badgeName(id).zh}`,
+      clear: () => setFilters({ ...filters, badges: filters.badges.filter((x) => x !== id) }),
+    })),
   ];
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-baseline gap-2">
-        <h1 className="text-xl font-bold text-white">卡库</h1>
+        <h1 className="text-xl font-bold text-white">球员卡</h1>
+        <span className="hidden text-[11px] uppercase tracking-widest text-slate-600 sm:inline">Player Cards</span>
         <span className="text-xs text-slate-500">
-          索引 {ALL.length} 张 · 筛选出 {filtered.length} 张
+          共 {ALL.length} 张 · 筛选出 {filtered.length} 张
+          {doc?.ts && ` · 行情快照 ${new Date(doc.ts).toLocaleString("zh-CN", { hour12: false })}`}
         </span>
         <div className="ml-auto flex items-center gap-2">
           <button onClick={() => setOnlyFav((v) => !v)}
@@ -266,6 +293,12 @@ export default function PlayersPage() {
               onChange={(e) => setFilters({ ...filters, minBadges: Number(e.target.value) })}
               className="ml-2 accent-accent" />
           </label>
+          <label className="text-sm text-slate-400">
+            徽章 ≤
+            <input type="number" min={0} max={99} value={filters.maxBadges === 99 ? "" : filters.maxBadges} placeholder="不限"
+              onChange={(e) => setFilters({ ...filters, maxBadges: e.target.value ? Number(e.target.value) : 99 })}
+              className="ml-2 w-20 rounded-lg border border-court-600 bg-court-900 px-2 py-1.5 text-xs text-ink outline-none" />
+          </label>
           <select value={basis} onChange={(e) => setBasis(e.target.value as Basis)}
             className="rounded-lg border border-court-600 bg-court-900 px-2 py-1.5 text-xs text-ink outline-none">
             <option value="a">综合价</option>
@@ -309,10 +342,14 @@ export default function PlayersPage() {
             {collections.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
           <label className="text-sm text-slate-400">
-            价格 ≤
-            <input type="number" min={0} step={10000} value={filters.maxPrice ?? ""} placeholder="不限"
+            价格
+            <input type="number" min={0} step={10000} value={filters.minPrice ?? ""} placeholder="最低"
+              onChange={(e) => setFilters({ ...filters, minPrice: e.target.value ? Number(e.target.value) : null })}
+              className="mx-1.5 w-24 rounded-lg border border-court-600 bg-court-900 px-2 py-1.5 text-xs text-ink outline-none" />
+            <span className="text-muted">–</span>
+            <input type="number" min={0} step={10000} value={filters.maxPrice ?? ""} placeholder="最高"
               onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value ? Number(e.target.value) : null })}
-              className="ml-2 w-28 rounded-lg border border-court-600 bg-court-900 px-2 py-1.5 text-xs text-ink outline-none" />
+              className="ml-1.5 w-24 rounded-lg border border-court-600 bg-court-900 px-2 py-1.5 text-xs text-ink outline-none" />
           </label>
           <div className="flex items-center gap-1.5 text-xs text-slate-400">
             <span className="text-muted">可交易</span>
@@ -345,6 +382,53 @@ export default function PlayersPage() {
             className="rounded-lg border border-court-600 px-2.5 py-1.5 text-xs text-slate-400 hover:text-rose-300">
             重置
           </button>
+        </div>
+
+        {/* 指定徽章：统一走徽章词库（中文名 / 英文名 / 旧译别名都能搜到） */}
+        <div className="space-y-2 border-t border-court-600 pt-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] text-muted">指定徽章</span>
+            <input value={badgeQ} onChange={(e) => setBadgeQ(e.target.value)}
+              placeholder="搜索徽章（如 空中作业 / Aerial Wizard / 空中魔术师）"
+              className="w-72 rounded-lg border border-court-600 bg-court-900 px-2 py-1.5 text-xs text-ink outline-none focus:border-accent" />
+            <div className="flex flex-wrap items-center gap-1">
+              {[{ id: "all", name_zh: "全部" }, ...CATEGORIES].map((c) => (
+                <button key={c.id} onClick={() => setBadgeCat(c.id)}
+                  className={`rounded-md border px-1.5 py-0.5 text-[11px] ${badgeCat === c.id ? "border-accent bg-accent/15 text-accent" : "border-court-600 text-slate-500"}`}>
+                  {c.name_zh}
+                </button>
+              ))}
+            </div>
+            {filters.badges.length > 0 && (
+              <span className="text-[11px] text-slate-500">已选 {filters.badges.length} 个（需同时拥有）</span>
+            )}
+          </div>
+
+          {filters.badges.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {filters.badges.map((id) => (
+                <button key={id} title="点击移除"
+                  onClick={() => setFilters({ ...filters, badges: filters.badges.filter((x) => x !== id) })}>
+                  <BadgeItem badgeId={id} showEn />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {(badgeQ.trim() || badgeCat !== "all") && (
+            <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto rounded-lg border border-court-600 bg-court-900/60 p-2">
+              {searchBadges(badgeQ)
+                .filter((b) => badgeCat === "all" || b.category === badgeCat)
+                .filter((b) => !filters.badges.includes(b.badge_id))
+                .slice(0, 40)
+                .map((b) => (
+                  <button key={b.badge_id} onClick={() => setFilters({ ...filters, badges: [...filters.badges, b.badge_id] })}
+                    className="hover:opacity-80">
+                    <BadgeItem badgeId={b.badge_id} />
+                  </button>
+                ))}
+            </div>
+          )}
         </div>
 
         {activeTags.length > 0 && (

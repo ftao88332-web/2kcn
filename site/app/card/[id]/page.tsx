@@ -10,9 +10,9 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const card = (cards as unknown as IndexCard[]).find((c) => String(c.id) === params.id);
-  if (!card) return { title: "2K中文库" };
+  if (!card) return { title: "2K Card Lab" };
   return {
-    title: `${card.name} ${card.overall} OVR | 2K中文库`,
+    title: `${card.name} ${card.overall} OVR | 2K Card Lab`,
     description: `${card.name} ${card.version} ${card.overall}OVR、属性徽章与行情快照。`,
   };
 }

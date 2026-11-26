@@ -14,6 +14,7 @@ site/tsconfig.tsbuildinfo
 site/data/cards.json
 site/data/cards_index.json
 site/data/card_ids.json
+site/data/badge_index.json
 
 # 运行时缓存 / 日志
 scraper/out/tmp/
