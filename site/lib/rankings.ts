@@ -21,6 +21,8 @@ export type Scheme = {
   name: string;
   description: string;
   positions: Record<Pos, RankItem[]>;
+  /** 每个位置展示的卡槽数（默认 5，可继续增加） */
+  slots: Record<Pos, number>;
   locked: Record<Pos, boolean>;
   created_at: string;
   updated_at: string;
@@ -42,6 +44,10 @@ export const emptyLocked = (): Record<Pos, boolean> => ({
   PG: false, SG: false, SF: false, PF: false, C: false,
 });
 
+export const emptySlots = (n = 5): Record<Pos, number> => ({
+  PG: n, SG: n, SF: n, PF: n, C: n,
+});
+
 const now = () => new Date().toISOString();
 
 export function newScheme(name: string, description = ""): Scheme {
@@ -50,6 +56,7 @@ export function newScheme(name: string, description = ""): Scheme {
     name,
     description,
     positions: emptyPositions(),
+    slots: emptySlots(),
     locked: emptyLocked(),
     created_at: now(),
     updated_at: now(),
@@ -72,6 +79,7 @@ export function readDoc(): RankingsDoc {
       name: String(s.name ?? "未命名方案"),
       description: String(s.description ?? ""),
       positions: { ...emptyPositions(), ...(s.positions ?? {}) },
+      slots: { ...emptySlots(), ...(s.slots ?? {}) },
       locked: { ...emptyLocked(), ...(s.locked ?? {}) },
       created_at: String(s.created_at ?? now()),
       updated_at: String(s.updated_at ?? now()),

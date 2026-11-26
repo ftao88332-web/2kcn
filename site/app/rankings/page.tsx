@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import cards from "@/data/cards_index.json";
 import type { IndexCard } from "@/lib/core";
+import { withBase } from "@/lib/core";
 import CardPicker from "@/components/card-picker";
-import { TIER_CN, TIER_COLOR } from "@/lib/i18n";
+import { TIER_COLOR } from "@/lib/i18n";
 import {
   POSITIONS, POS_CN, type Pos, type RankItem, type RankingsDoc,
-  readDoc, writeDoc, newScheme, emptyPositions, schemeToText,
+  readDoc, writeDoc, newScheme, emptyPositions, emptySlots, schemeToText,
 } from "@/lib/rankings";
 
 const ALL = cards as unknown as IndexCard[];
@@ -82,6 +84,19 @@ export default function RankingsPage() {
     patchScheme((s) => ({ ...s, locked: { ...s.locked, [pos]: !s.locked[pos] } }));
   };
 
+  /** 卡槽网格：至少 5 槽，且保证已排的卡都放得下 */
+  const slotCount = Math.max(scheme?.slots[pos] ?? 5, items.length, 5);
+
+  const addSlots = () =>
+    patchScheme((s) => ({ ...s, slots: { ...s.slots, [pos]: (s.slots[pos] ?? 5) + 5 } }));
+
+  const dropAt = (to: number) => {
+    if (dragFrom === null) return;
+    const target = to >= items.length ? items.length - 1 : to;
+    if (target >= 0) move(dragFrom, target);
+    setDragFrom(null);
+  };
+
   const createScheme = (mode: "new" | "rename" | "copy", value: string) => {
     if (!doc || !scheme) return;
     const name = value.trim() || "未命名方案";
@@ -131,6 +146,7 @@ export default function RankingsPage() {
           name: String(s.name ?? "导入的排名"),
           description: String(s.description ?? ""),
           positions: { ...emptyPositions(), ...s.positions },
+          slots: emptySlots(),
           locked: { PG: false, SG: false, SF: false, PF: false, C: false },
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -242,61 +258,74 @@ export default function RankingsPage() {
           <span className="text-[11px] text-slate-600">自动保存 · 仅本机浏览器</span>
         </div>
 
-        {items.length === 0 ? (
-          <div className="mt-6 rounded-xl border border-dashed border-court-600 py-12 text-center">
-            <p className="text-sm text-slate-400">{POS_CN[pos]} 还没有球员</p>
-            <p className="mt-1 text-xs text-slate-600">点「添加球员卡」，从 1358 张卡里挑你认为最强的。</p>
-          </div>
-        ) : (
-          <ol className="mt-3 space-y-1.5">
-            {items.map((it, i) => {
-              const c = BY_ID.get(it.card_id);
+        <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+          {Array.from({ length: slotCount }).map((_, i) => {
+            const it = items[i];
+            if (!it) {
               return (
-                <li key={it.card_id}
-                  draggable={!locked}
-                  onDragStart={() => setDragFrom(i)}
+                <button key={`slot-${i}`} onClick={() => { if (!locked) setPicker(true); }} disabled={locked}
                   onDragOver={(e) => { if (dragFrom !== null) e.preventDefault(); }}
-                  onDrop={(e) => { e.preventDefault(); if (dragFrom !== null) move(dragFrom, i); setDragFrom(null); }}
-                  onDragEnd={() => setDragFrom(null)}
-                  className={`flex flex-wrap items-center gap-2 rounded-xl border bg-court-700/40 p-2 ${dragFrom === i ? "border-accent/70 opacity-60" : "border-court-600"}`}>
-                  <span className="w-6 shrink-0 text-center font-mono text-sm font-bold text-accent">{i + 1}</span>
-                  {!locked && <span className="cursor-grab select-none text-slate-600" title="拖拽排序">⋮⋮</span>}
+                  onDrop={(e) => { e.preventDefault(); dropAt(i); }}
+                  className="flex min-h-[170px] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-court-600 bg-court-700/20 text-slate-600 transition hover:border-accent/60 hover:text-accent disabled:cursor-not-allowed disabled:hover:border-court-600">
+                  <span className="text-2xl leading-none">＋</span>
+                  <span className="text-[11px]">{locked ? "已锁定" : "添加球员"}</span>
+                  <span className="font-mono text-[10px] text-slate-700">#{i + 1}</span>
+                </button>
+              );
+            }
+            const c = BY_ID.get(it.card_id);
+            return (
+              <div key={it.card_id}
+                draggable={!locked}
+                onDragStart={() => setDragFrom(i)}
+                onDragOver={(e) => { if (dragFrom !== null) e.preventDefault(); }}
+                onDrop={(e) => { e.preventDefault(); dropAt(i); }}
+                onDragEnd={() => setDragFrom(null)}
+                className={`group overflow-hidden rounded-xl border bg-court-700/50 transition ${dragFrom === i ? "border-accent opacity-60" : "border-court-600 hover:border-accent/50"} ${locked ? "" : "cursor-grab"}`}>
+                <div className="relative bg-court-900">
+                  {c?.tier != null && (
+                    <div className="h-[3px] w-full" style={{ background: TIER_COLOR[c.tier] ?? "#29394D" }} />
+                  )}
                   {c?.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={c.image} alt="" className="h-12 w-9 shrink-0 rounded object-cover" loading="lazy" />
-                  ) : <div className="h-12 w-9 shrink-0 rounded bg-court-900" />}
-                  <span className="font-mono text-sm font-bold text-accent">{c?.overall ?? "-"}</span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm text-ink">
-                      {c?.name ?? `未知卡片 #${it.card_id}`}
-                      {c?.version && <span className="ml-1 text-[11px] text-slate-500">{c.version}</span>}
-                    </p>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] text-slate-500">
-                      {c?.position && <span className="rounded bg-court-900 px-1 py-0.5 text-slate-300">{c.position}</span>}
-                      {c?.sec && <span className="max-w-[9rem] truncate">{c.sec}</span>}
-                      {c?.tier != null && (
-                        <span className="rounded px-1 py-0.5" style={{ color: TIER_COLOR[c.tier] ?? "#94A3B8", background: `${TIER_COLOR[c.tier] ?? "#94A3B8"}1a` }}>
-                          {TIER_CN[c.tier] ?? "—"}
-                        </span>
-                      )}
-                      {c && <a href={`/card/${c.id}/`} className="text-accent/80 hover:underline">卡片详情</a>}
-                    </p>
-                  </div>
-                  <input value={it.note} onChange={(e) => setNote(i, e.target.value)} placeholder="写下你的评价（选填）" disabled={locked}
-                    className="ml-auto h-8 w-full min-w-[8rem] flex-1 rounded-lg border border-court-600 bg-court-900 px-2 text-[11px] text-ink outline-none focus:border-accent sm:w-auto sm:max-w-xs" />
-                  <div className="flex shrink-0 items-center gap-1">
+                    <img src={withBase(c.image)} alt="" className="aspect-[3/4] w-full object-cover" loading="lazy" draggable={false} />
+                  ) : <div className="aspect-[3/4] w-full" />}
+                  <span className="absolute left-1 top-1 rounded bg-court-900/90 px-1.5 py-0.5 font-mono text-[11px] font-bold text-accent">#{i + 1}</span>
+                  {c?.overall != null && (
+                    <span className="absolute right-1 top-1 rounded bg-court-900/90 px-1.5 py-0.5 font-mono text-[11px] font-bold text-ink">{c.overall}</span>
+                  )}
+                  {!locked && (
+                    <span className="absolute bottom-1 left-1 rounded bg-court-900/80 px-1 py-0.5 text-[10px] text-slate-400 opacity-0 transition group-hover:opacity-100">⋮⋮ 拖动</span>
+                  )}
+                </div>
+                <div className="space-y-1 p-1.5">
+                  <Link href={`/card/${c?.id}/`} className="block truncate text-[11px] font-medium text-ink hover:text-accent">
+                    {c?.name ?? `未知卡片 #${it.card_id}`}
+                  </Link>
+                  <p className="truncate text-[10px] text-slate-500">
+                    {c?.version ?? ""}{c?.sec ? ` · ${c.sec}` : ""}
+                  </p>
+                  <input value={it.note} onChange={(e) => setNote(i, e.target.value)} placeholder="评价（选填）" disabled={locked}
+                    className="h-6 w-full rounded border border-court-600 bg-court-900 px-1.5 text-[10px] text-ink outline-none focus:border-accent" />
+                  <div className="flex items-center justify-between text-[10px]">
                     <button onClick={() => move(i, i - 1)} disabled={locked || i === 0}
-                      className="rounded border border-court-600 px-1.5 py-0.5 text-[11px] text-slate-400 disabled:opacity-30 hover:text-white">↑</button>
+                      className="rounded border border-court-600 px-1.5 py-0.5 text-slate-400 disabled:opacity-30 hover:text-white">↑</button>
                     <button onClick={() => move(i, i + 1)} disabled={locked || i === items.length - 1}
-                      className="rounded border border-court-600 px-1.5 py-0.5 text-[11px] text-slate-400 disabled:opacity-30 hover:text-white">↓</button>
+                      className="rounded border border-court-600 px-1.5 py-0.5 text-slate-400 disabled:opacity-30 hover:text-white">↓</button>
                     <button onClick={() => removeAt(i)} disabled={locked}
-                      className="rounded border border-court-600 px-1.5 py-0.5 text-[11px] text-rose-400/80 disabled:opacity-30 hover:text-rose-300">移除</button>
+                      className="rounded border border-court-600 px-1 py-0.5 text-rose-400/80 disabled:opacity-30 hover:text-rose-300">移除</button>
                   </div>
-                </li>
-              );
-            })}
-          </ol>
-        )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[11px] text-slate-500">{slotCount} 个卡槽 · 已排 {items.length} 名球员</span>
+          <button onClick={addSlots} disabled={locked}
+            className="rounded-lg border border-court-600 px-2.5 py-1 text-[11px] text-slate-400 hover:text-white disabled:opacity-40">+ 增加卡槽（5 个）</button>
+        </div>
 
         {locked && <p className="mt-3 text-[11px] text-warning">本位置已锁定：添加、删除、排序、备注都不可修改，先解锁再编辑。</p>}
       </section>

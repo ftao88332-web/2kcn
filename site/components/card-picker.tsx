@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { IndexCard } from "@/lib/core";
+import { withBase } from "@/lib/core";
 import { TIER_CN, TIER_COLOR } from "@/lib/i18n";
 
 /** 从卡库挑一张卡：按名字/系列搜索，可按位置过滤，已在榜单里的卡置灰。 */
@@ -63,7 +64,7 @@ export default function CardPicker({
                 }`}>
                 {c.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.image} alt="" className="h-10 w-8 shrink-0 rounded object-cover" loading="lazy" />
+                  <img src={withBase(c.image)} alt="" className="h-10 w-8 shrink-0 rounded object-cover" loading="lazy" />
                 ) : <div className="h-10 w-8 shrink-0 rounded bg-court-900" />}
                 <span className="font-mono text-sm font-bold text-accent">{c.overall ?? "-"}</span>
                 <span className="min-w-0 flex-1 truncate text-xs text-ink">{c.name}
