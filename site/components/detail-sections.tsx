@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ATTR_CN, ATTR_GROUPS, TIER_CN, attrCn, badgeCn, ANIM_GROUPS, animCn } from "@/lib/i18n";
+import { ATTR_CN, ATTR_GROUPS, BADGE_TIER_CN, attrCn, badgeCn, ANIM_GROUPS, animCn } from "@/lib/i18n";
 import type { IndexCard } from "@/lib/core";
 
 /* ---------------- 属性 ---------------- */
@@ -68,10 +68,10 @@ export function BadgesGrid({ badges }: { badges: Record<string, number> }) {
           return (
             <span key={slug}
               className={`inline-flex cursor-default items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs ${TIER_STYLE[tier] ?? "border-court-600 bg-court-700 text-ink/80"}`}
-              title={`${slug} · ${TIER_CN[tier] ?? ""}`}>
+              title={`${slug} · ${BADGE_TIER_CN[tier] ?? ""}`}>
               <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
               <span className="font-semibold">{name}</span>
-              <span className="text-[10px] opacity-80">{TIER_CN[tier] ?? tier}</span>
+              <span className="text-[10px] opacity-80">{BADGE_TIER_CN[tier] ?? tier}</span>
               {!zh && <span className="text-[9px] opacity-60">EN</span>}
             </span>
           );

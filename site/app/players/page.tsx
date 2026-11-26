@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import cards from "@/data/cards_index.json";
 import { IndexCard, priceOfId, fmtMt, fmtNum, PLATFORMS } from "@/lib/core";
 import { usePrices } from "@/lib/use-prices";
-import { TIER_CN, TIER_COLOR, rarity } from "@/lib/i18n";
+import { TIER_CN, TIER_EN, TIER_COLOR, rarity } from "@/lib/i18n";
 import CardTile from "@/components/card-tile";
 import { useFavorites } from "@/lib/use-favorites";
 
@@ -194,7 +194,7 @@ export default function PlayersPage() {
             {tiers.map(([t, n]) => (
               <button key={t} onClick={() => setFilters({ ...filters, tier: toggle(filters.tier, String(t)) })}
                 className={`rounded-md border px-2 py-1 text-xs ${filters.tier.includes(String(t)) ? "border-accent bg-accent/15 text-accent" : "border-court-600 text-slate-400"}`}
-                title={`${TIER_CN[t] ?? t} · ${n} 张`}>
+                title={`${TIER_CN[t] ?? t} ${TIER_EN[t] ?? ""} · ${n} 张`}>
                 <i className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: TIER_COLOR[t] ?? "#888" }} />
                 {TIER_CN[t] ?? t}
               </button>

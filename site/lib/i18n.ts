@@ -77,13 +77,29 @@ export const BADGE_CN: Record<string, string> = {
   sync_snatcher: "协同抢断", wall_up: "贴墙防守", warm_weather_fan: "热情主场",
 };
 
-export const TIER_CN: Record<number, string> = { 1: "铜", 2: "银", 3: "金", 4: "青铜", 5: "绿宝石", 6: "翡翠", 7: "蓝宝石", 9: "红宝石", 10: "紫水晶", 11: "钻石", 12: "粉钻", 13: "银河", 14: "暗物质", 15: "GOAT", 21: "GOAT+" };
+/** 卡种（Gem Tier）：2K27 里 90 分以上每个总评都有独立的宝石档 */
+export const TIER_CN: Record<number, string> = {
+  4: "金", 5: "翡翠", 6: "蓝宝石", 7: "红宝石",
+  9: "紫水晶", 10: "钻石", 11: "粉钻", 12: "银河欧泊",
+  13: "暗物质", 14: "像素", 15: "熔岩", 21: "G.O.A.T.",
+};
+export const TIER_EN: Record<number, string> = {
+  4: "Gold", 5: "Emerald", 6: "Sapphire", 7: "Ruby",
+  9: "Amethyst", 10: "Diamond", 11: "Pink Diamond", 12: "Galaxy Opal",
+  13: "Dark Matter", 14: "Pixel", 15: "Magma", 21: "G.O.A.T.",
+};
 
-/** tier → 稀有度色（近似 2kdb） */
+/** 徽章等级（与卡种档位是两套体系） */
+export const BADGE_TIER_CN: Record<number, string> = {
+  1: "铜", 2: "银", 3: "金", 4: "名人堂", 5: "传奇",
+};
+
+/** tier → 稀有度色（近似 2kdb 卡面配色） */
 export const TIER_COLOR: Record<number, string> = {
-  4: "#CD7F32", 5: "#3FB950", 6: "#16C784", 7: "#4A90E2", 9: "#E5484D",
-  10: "#A371F7", 11: "#7DD3FC", 12: "#F472B6", 13: "#B762FF", 14: "#8B5CF6",
-  15: "#F59E0B", 21: "#FACC15",
+  4: "#E3B341", 5: "#2ECC71", 6: "#4A90E2", 7: "#E5484D",
+  9: "#A371F7", 10: "#7DD3FC", 11: "#F472B6", 12: "#B762FF",
+  13: "#6D28D9", 14: "#22D3EE", 15: "#F97316",
+  21: "#FACC15",
 };
 
 export function attrCn(k: string): string {
@@ -95,19 +111,21 @@ export function badgeCn(slug: string): { name: string; zh: boolean } {
   return { name: slug.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()), zh: false };
 }
 
-/** OVR → 稀有度色（近似 2kdb） */
+/** OVR → 稀有度色（按 2K27 卡种档位对齐） */
 export function rarity(ovr: number | null | undefined): { text: string; border: string } {
   const o = ovr ?? 0;
-  if (o >= 99) return { text: "text-fuchsia-300", border: "border-fuchsia-500/60" };
-  if (o >= 97) return { text: "text-pink-300", border: "border-pink-500/60" };
-  if (o >= 95) return { text: "text-cyan-300", border: "border-cyan-400/60" };
-  if (o >= 93) return { text: "text-purple-300", border: "border-purple-400/60" };
-  if (o >= 91) return { text: "text-rose-300", border: "border-rose-400/60" };
-  if (o >= 89) return { text: "text-blue-300", border: "border-blue-400/60" };
-  if (o >= 87) return { text: "text-emerald-300", border: "border-emerald-400/60" };
-  if (o >= 84) return { text: "text-yellow-300", border: "border-yellow-400/70" };
-  if (o >= 80) return { text: "text-slate-200", border: "border-slate-400/60" };
-  return { text: "text-orange-300", border: "border-orange-400/60" };
+  if (o >= 99) return { text: "text-amber-200", border: "border-amber-300/70" };   // G.O.A.T.
+  if (o >= 96) return { text: "text-orange-300", border: "border-orange-400/60" }; // 熔岩
+  if (o >= 95) return { text: "text-cyan-300", border: "border-cyan-400/60" };     // 像素
+  if (o >= 94) return { text: "text-purple-300", border: "border-purple-500/60" }; // 暗物质
+  if (o >= 93) return { text: "text-violet-300", border: "border-violet-400/60" }; // 银河欧泊
+  if (o >= 92) return { text: "text-pink-300", border: "border-pink-400/60" };     // 粉钻
+  if (o >= 91) return { text: "text-sky-300", border: "border-sky-400/60" };       // 钻石
+  if (o >= 90) return { text: "text-fuchsia-300", border: "border-fuchsia-400/60" }; // 紫水晶
+  if (o >= 87) return { text: "text-red-300", border: "border-red-400/60" };       // 红宝石
+  if (o >= 84) return { text: "text-blue-300", border: "border-blue-400/60" };     // 蓝宝石
+  if (o >= 80) return { text: "text-emerald-300", border: "border-emerald-400/60" }; // 翡翠
+  return { text: "text-amber-300", border: "border-amber-400/60" };                // 金
 }
 
 /* ---------------- 动作包（动画）分组与译名 ---------------- */

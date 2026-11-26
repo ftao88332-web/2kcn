@@ -1,7 +1,7 @@
 "use client";
 
 import { IndexCard, withBase } from "@/lib/core";
-import { TIER_CN, badgeCn, rarity } from "@/lib/i18n";
+import { TIER_CN, TIER_EN, TIER_COLOR, BADGE_TIER_CN, badgeCn, rarity } from "@/lib/i18n";
 import { AttrsGroups, BadgesGrid, Hotzones, AnimationsGrid, DuoRow, EvoRow } from "@/components/detail-sections";
 import PricePanel from "@/components/price-panel";
 import { useFavorites } from "@/lib/use-favorites";
@@ -38,7 +38,7 @@ function badgeSummary(badges: Record<string, unknown>): string {
     if (Number.isFinite(n) && n > 0) c[n] = (c[n] ?? 0) + 1;
   }
   return [5, 4, 3, 2, 1].filter((t) => c[t])
-    .map((t) => `${TIER_CN[t]}×${c[t]}`).join(" · ") || "暂无徽章";
+    .map((t) => `${BADGE_TIER_CN[t]}×${c[t]}`).join(" · ") || "暂无徽章";
 }
 
 export default function PlayerDetail({ card }: { card: IndexCard }) {
@@ -87,6 +87,18 @@ function PlayerDetailInner({ card, badges, hz }: { card: IndexCard; badges: Reco
                 <p className="mt-1.5 text-sm text-muted">
                   {card.position ?? ""}{card.sec ? ` / ${card.sec}` : ""}
                   {" · "}<span className="text-ink/90">{card.team ?? "自由球员"}</span>
+                  {card.tier != null && (
+                    <span className="ml-2 inline-flex items-center gap-1 rounded border px-1.5 py-0.5 align-middle text-[11px]"
+                      style={{
+                        color: TIER_COLOR[card.tier] ?? "#94a3b8",
+                        borderColor: `${TIER_COLOR[card.tier] ?? "#94a3b8"}80`,
+                        background: `${TIER_COLOR[card.tier] ?? "#94a3b8"}14`,
+                      }}>
+                      <i className="h-1.5 w-1.5 rounded-full" style={{ background: TIER_COLOR[card.tier] ?? "#94a3b8" }} />
+                      {TIER_CN[card.tier] ?? `tier ${card.tier}`}
+                      <span className="opacity-70">{TIER_EN[card.tier] ?? ""}</span>
+                    </span>
+                  )}
                 </p>
                 {(card.off_overall != null || card.def_overall != null) && (
                   <p className="mt-1 text-[11px] text-muted">
@@ -105,7 +117,7 @@ function PlayerDetailInner({ card, badges, hz }: { card: IndexCard; badges: Reco
                   return (
                     <span key={b.slug} className="rounded border border-court-600 bg-court-900/60 px-1.5 py-0.5 text-[11px] text-muted">
                       <span className="font-semibold text-ink">{name}</span>
-                      <span className="ml-1 text-[10px]">{TIER_CN[b.tier] ?? ""}</span>
+                      <span className="ml-1 text-[10px]">{BADGE_TIER_CN[b.tier] ?? ""}</span>
                       {!zh && <span className="ml-0.5 text-[9px] opacity-70">EN</span>}
                     </span>
                   );
