@@ -4,6 +4,7 @@ import { IndexCard } from "@/lib/core";
 import CardTile from "@/components/card-tile";
 import MarketBoard from "@/components/market-board";
 import GlobalSearch from "@/components/global-search";
+import BrandLogo from "@/components/brand-logo";
 import HomeRanks from "@/components/home-ranks";
 import { BADGES } from "@/lib/badge-lexicon";
 
@@ -21,7 +22,7 @@ export default function Home() {
     <div className="space-y-10">
       {/* 1-2 品牌头 + 全站搜索 + 数据统计 */}
       <section className="rounded-2xl border border-court-600 bg-court-800 p-6">
-        <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-accent">2K CARD LAB</p>
+        <BrandLogo variant="full" height={64} className="mb-3" />
         <h1 className="mt-2 text-2xl font-black leading-tight text-white sm:text-3xl">
           NBA 2K MyTEAM 数据平台
         </h1>

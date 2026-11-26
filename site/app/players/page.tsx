@@ -388,6 +388,7 @@ export default function PlayersPage() {
         <div className="space-y-2 border-t border-court-600 pt-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] text-muted">指定徽章</span>
+            <Link href="/badges/" className="text-[11px] text-accent hover:underline">徽章库 →</Link>
             <input value={badgeQ} onChange={(e) => setBadgeQ(e.target.value)}
               placeholder="搜索徽章（如 空中作业 / Aerial Wizard / 空中魔术师）"
               className="w-72 rounded-lg border border-court-600 bg-court-900 px-2 py-1.5 text-xs text-ink outline-none focus:border-accent" />

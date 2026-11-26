@@ -84,6 +84,7 @@ export function BadgesGrid({ badges }: { badges: Record<string, number> }) {
         })}
         <span className="ml-auto text-[11px] text-slate-500">
           词库：2kAuction 2K27 简体中文 · 共 {BADGES.length} 条
+          <Link href="/badges/" className="ml-2 text-accent hover:underline">徽章库</Link>
         </span>
       </div>
       <div className="flex flex-wrap gap-1.5">
