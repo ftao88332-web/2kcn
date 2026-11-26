@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import cards from "@/data/cards_index.json";
-import { IndexCard, priceOfId, fmtMt, fmtNum, PLATFORMS } from "@/lib/core";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { priceOfId, fmtMt, fmtNum, PLATFORMS, IndexCard } from "@/lib/core";
 import { usePrices } from "@/lib/use-prices";
 import { TIER_CN, TIER_EN, TIER_COLOR, rarity } from "@/lib/i18n";
 import CardTile from "@/components/card-tile";
 import { useFavorites } from "@/lib/use-favorites";
+import { CARDS, QueryCard, stat, positionsOf } from "@/lib/services/cards";
 
-const ALL = cards as unknown as IndexCard[];
+const ALL = CARDS as QueryCard[];
 const PAGE = 60;
 
 const POS = ["PG", "SG", "SF", "PF", "C"];
@@ -19,6 +19,8 @@ const SORTS: { key: string; label: string }[] = [
   { key: "overall", label: "总评" },
   { key: "price", label: "价格" },
   { key: "shot_3pt", label: "三分" },
+  { key: "shot_mid", label: "中距离" },
+  { key: "driving_layup", label: "上篮" },
   { key: "ball_handle", label: "运球" },
   { key: "speed", label: "速度" },
   { key: "perimeter_defense", label: "外防" },
@@ -27,6 +29,7 @@ const SORTS: { key: string; label: string }[] = [
   { key: "defensive_rebound", label: "防板" },
   { key: "badge_count", label: "徽章数" },
   { key: "height_cm", label: "身高" },
+  { key: "released_at", label: "最新上线" },
 ];
 
 type Basis = "co" | "pc" | "a";
@@ -38,20 +41,30 @@ interface Filters {
   team: string;
   collection: string;
   minOvr: number;
+  maxOvr: number;
   minBadges: number;
   minHeight: number;
   maxPrice: number | null;
   tradable: boolean | null;
+  evo: boolean | null;
+  duo: boolean | null;
 }
 
 const emptyFilters = (): Filters => ({
   q: "", pos: [], tier: [], team: "", collection: "",
-  minOvr: 68, minBadges: 0, minHeight: 0, maxPrice: null, tradable: null,
+  minOvr: 0, maxOvr: 99, minBadges: 0, minHeight: 0, maxPrice: null,
+  tradable: null, evo: null, duo: null,
 });
 
-function attrNum(c: IndexCard, key: string): number {
-  const v = (c.attrs ?? {})[key];
-  return typeof v === "number" ? v : -1;
+/** 索引里的关键属性（索引不带 attrs，统一走 stats） */
+function attrNum(c: IndexCard, key: string): number | null {
+  return stat(c as QueryCard, key);
+}
+
+function toTri(v: string | null): boolean | null {
+  if (v === "1") return true;
+  if (v === "0") return false;
+  return null;
 }
 
 export default function PlayersPage() {
@@ -64,6 +77,7 @@ export default function PlayersPage() {
   const [basis, setBasis] = useState<Basis>("a");
   const [view, setView] = useState<"grid" | "table">("grid");
   const [shown, setShown] = useState(PAGE);
+  const [ready, setReady] = useState(false);
 
   const teams = useMemo(() => [...new Set(ALL.map((c) => c.team).filter(Boolean) as string[])].sort(), []);
   const collections = useMemo(() => [...new Set(ALL.map((c) => c.collection).filter(Boolean) as string[])].sort(), []);
@@ -73,18 +87,76 @@ export default function PlayersPage() {
     return [...m.entries()].sort((a, b) => a[0] - b[0]);
   }, []);
 
-  const priceOf = (c: IndexCard) => priceOfId(doc, c.id, basis);
+  const priceOf = useCallback((c: IndexCard) => priceOfId(doc, c.id, basis), [doc, basis]);
+
+  // 首帧读 URL 还原筛选，刷新/分享后状态一致
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const f = emptyFilters();
+    f.q = sp.get("q") ?? "";
+    f.pos = (sp.get("pos") ?? "").split(",").filter(Boolean);
+    f.tier = (sp.get("tier") ?? "").split(",").filter(Boolean);
+    f.team = sp.get("team") ?? "";
+    f.collection = sp.get("coll") ?? "";
+    f.minOvr = Number(sp.get("minOvr") ?? 0) || 0;
+    f.maxOvr = Number(sp.get("maxOvr") ?? 99) || 99;
+    f.minBadges = Number(sp.get("minBadge") ?? 0) || 0;
+    f.minHeight = Number(sp.get("minH") ?? 0) || 0;
+    f.maxPrice = sp.get("maxPrice") ? Number(sp.get("maxPrice")) : null;
+    f.tradable = toTri(sp.get("tradable"));
+    f.evo = toTri(sp.get("evo"));
+    f.duo = toTri(sp.get("duo"));
+    setFilters(f);
+    if (sp.get("sort")) setSortKey(sp.get("sort")!);
+    if (sp.get("desc")) setSortDesc(sp.get("desc") !== "0");
+    if (sp.get("basis")) setBasis(sp.get("basis") as Basis);
+    if (sp.get("view") === "table") setView("table");
+    setOnlyFav(sp.get("fav") === "1");
+    setReady(true);
+  }, []);
+
+  // 筛选变化写回 URL（不新增历史记录）
+  useEffect(() => {
+    if (!ready) return;
+    const sp = new URLSearchParams();
+    const put = (k: string, v: string | number | null | undefined) => {
+      if (v !== null && v !== undefined && v !== "" && v !== "0") sp.set(k, String(v));
+    };
+    put("q", filters.q.trim());
+    put("pos", filters.pos.join(","));
+    put("tier", filters.tier.join(","));
+    put("team", filters.team);
+    put("coll", filters.collection);
+    put("minOvr", filters.minOvr);
+    put("maxOvr", filters.maxOvr === 99 ? null : filters.maxOvr);
+    put("minBadge", filters.minBadges);
+    put("minH", filters.minHeight);
+    put("maxPrice", filters.maxPrice);
+    if (filters.tradable !== null) sp.set("tradable", filters.tradable ? "1" : "0");
+    if (filters.evo !== null) sp.set("evo", filters.evo ? "1" : "0");
+    if (filters.duo !== null) sp.set("duo", filters.duo ? "1" : "0");
+    if (sortKey !== "overall") sp.set("sort", sortKey);
+    if (!sortDesc) sp.set("desc", "0");
+    if (basis !== "a") sp.set("basis", basis);
+    if (view === "table") sp.set("view", "table");
+    if (onlyFav) sp.set("fav", "1");
+    const qs = sp.toString();
+    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+  }, [ready, filters, sortKey, sortDesc, basis, view, onlyFav]);
 
   const filtered = useMemo(() => {
     const kw = filters.q.trim().toLowerCase();
     return ALL.filter((c) => {
       if ((c.overall ?? 0) < filters.minOvr) return false;
+      if ((c.overall ?? 0) > filters.maxOvr) return false;
       if ((c.badge_count ?? 0) < filters.minBadges) return false;
       if ((c.height_cm ?? 0) < filters.minHeight) return false;
-      if (filters.pos.length && !filters.pos.some((p) => c.position === p || c.sec === p)) return false;
+      if (filters.pos.length && !filters.pos.some((p) => positionsOf(c).includes(p))) return false;
       if (filters.tier.length && !filters.tier.includes(String(c.tier))) return false;
       if (filters.team && c.team !== filters.team) return false;
       if (filters.collection && c.collection !== filters.collection) return false;
+      if (filters.evo !== null && Boolean(c.has_evo) !== filters.evo) return false;
+      if (filters.duo !== null && Boolean(c.has_duo) !== filters.duo) return false;
       const p = priceOf(c);
       if (filters.maxPrice != null && (p == null || p > filters.maxPrice)) return false;
       if (filters.tradable != null) {
@@ -95,27 +167,44 @@ export default function PlayersPage() {
       if (kw && ![c.name, c.team, c.theme, c.collection].some((v) => (v ?? "").toLowerCase().includes(kw))) return false;
       return true;
     });
-  }, [filters, doc, basis, onlyFav, isFav]);
+  }, [filters, priceOf, onlyFav, isFav]);
 
   const sorted = useMemo(() => {
     const arr = filtered.slice();
     const dir = sortDesc ? 1 : -1;
+    const num = (c: QueryCard, key: string): number => {
+      if (key === "price") return priceOf(c) ?? -1;
+      if (key === "overall") return c.overall ?? -1;
+      if (key === "badge_count") return c.badge_count ?? -1;
+      if (key === "height_cm") return c.height_cm ?? -1;
+      if (key === "released_at") return c.released_at ? Date.parse(c.released_at) : -1;
+      return attrNum(c, key) ?? -1;
+    };
     arr.sort((a, b) => {
-      let va: number, vb: number;
-      if (sortKey === "price") { va = priceOf(a) ?? -1; vb = priceOf(b) ?? -1; }
-      else if (sortKey === "overall") { va = a.overall ?? -1; vb = b.overall ?? -1; }
-      else if (sortKey === "badge_count") { va = a.badge_count ?? -1; vb = b.badge_count ?? -1; }
-      else if (sortKey === "height_cm") { va = a.height_cm ?? -1; vb = b.height_cm ?? -1; }
-      else { va = attrNum(a, sortKey); vb = attrNum(b, sortKey); }
-      return (vb - va) * dir || (b.overall ?? 0) - (a.overall ?? 0);
+      const va = num(a, sortKey);
+      const vb = num(b, sortKey);
+      if (va === -1 && vb === -1) return (b.overall ?? 0) - (a.overall ?? 0);
+      if (va === -1) return 1;
+      if (vb === -1) return -1;
+      return (va - vb) * dir || (b.overall ?? 0) - (a.overall ?? 0);
     });
     return arr;
-  }, [filtered, sortKey, sortDesc, doc, basis]);
+  }, [filtered, sortKey, sortDesc, priceOf]);
 
-  useEffect(() => setShown(PAGE), [filters, sortKey, sortDesc, basis]);
-
+  useEffect(() => setShown(PAGE), [filters, sortKey, sortDesc, basis, view]);
   const list = sorted.slice(0, shown);
   const toggle = (arr: string[], v: string) => arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
+
+  const activeTags = [
+    ...filters.pos.map((p) => ({ k: `pos:${p}`, label: `位置 ${p}`, clear: () => setFilters({ ...filters, pos: toggle(filters.pos, p) }) })),
+    ...filters.tier.map((t) => ({ k: `tier:${t}`, label: `卡种 ${TIER_CN[Number(t)] ?? t}`, clear: () => setFilters({ ...filters, tier: toggle(filters.tier, t) }) })),
+    ...(filters.team ? [{ k: "team", label: filters.team, clear: () => setFilters({ ...filters, team: "" }) }] : []),
+    ...(filters.collection ? [{ k: "coll", label: filters.collection, clear: () => setFilters({ ...filters, collection: "" }) }] : []),
+    ...(filters.tradable !== null ? [{ k: "tr", label: filters.tradable ? "有价" : "无价", clear: () => setFilters({ ...filters, tradable: null }) }] : []),
+    ...(filters.evo !== null ? [{ k: "evo", label: filters.evo ? "可进化" : "无进化", clear: () => setFilters({ ...filters, evo: null }) }] : []),
+    ...(filters.duo !== null ? [{ k: "duo", label: filters.duo ? "有双人组" : "无双人组", clear: () => setFilters({ ...filters, duo: null }) }] : []),
+    ...(filters.maxPrice != null ? [{ k: "price", label: `价格 ≤ ${filters.maxPrice.toLocaleString()}`, clear: () => setFilters({ ...filters, maxPrice: null }) }] : []),
+  ];
 
   return (
     <div className="space-y-4">
@@ -159,8 +248,14 @@ export default function PlayersPage() {
           />
           <label className="text-sm text-slate-400">
             总评 ≥ <b className="text-ink">{filters.minOvr}</b>
-            <input type="range" min={68} max={99} value={filters.minOvr}
+            <input type="range" min={0} max={99} value={filters.minOvr}
               onChange={(e) => setFilters({ ...filters, minOvr: Number(e.target.value) })}
+              className="ml-2 accent-accent" />
+          </label>
+          <label className="text-sm text-slate-400">
+            总评 ≤ <b className="text-ink">{filters.maxOvr}</b>
+            <input type="range" min={0} max={99} value={filters.maxOvr}
+              onChange={(e) => setFilters({ ...filters, maxOvr: Number(e.target.value) })}
               className="ml-2 accent-accent" />
           </label>
           <label className="text-sm text-slate-400">
@@ -177,7 +272,6 @@ export default function PlayersPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-          {/* 位置多选 */}
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] text-muted">位置</span>
             {POS.map((p) => (
@@ -188,7 +282,6 @@ export default function PlayersPage() {
             ))}
           </div>
 
-          {/* 卡种多选 */}
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] text-muted">卡种</span>
             {tiers.map(([t, n]) => (
@@ -228,17 +321,47 @@ export default function PlayersPage() {
               </button>
             ))}
           </div>
+          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+            <span className="text-muted">进化</span>
+            {[["all", "全部"], ["yes", "有"], ["no", "无"]].map(([v, l]) => (
+              <button key={v} onClick={() => setFilters({ ...filters, evo: v === "all" ? null : v === "yes" })}
+                className={`rounded-md border px-2 py-1 ${(filters.evo === null) === (v === "all") ? "border-accent bg-accent/15 text-accent" : "border-court-600"}`}>
+                {l}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+            <span className="text-muted">双人组</span>
+            {[["all", "全部"], ["yes", "有"], ["no", "无"]].map(([v, l]) => (
+              <button key={v} onClick={() => setFilters({ ...filters, duo: v === "all" ? null : v === "yes" })}
+                className={`rounded-md border px-2 py-1 ${(filters.duo === null) === (v === "all") ? "border-accent bg-accent/15 text-accent" : "border-court-600"}`}>
+                {l}
+              </button>
+            ))}
+          </div>
           <button onClick={() => setFilters(emptyFilters())}
             className="rounded-lg border border-court-600 px-2.5 py-1.5 text-xs text-slate-400 hover:text-rose-300">
             重置
           </button>
         </div>
+
+        {activeTags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] text-muted">已选</span>
+            {activeTags.map((t) => (
+              <button key={t.k} onClick={t.clear}
+                className="rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[11px] text-accent hover:bg-accent/20">
+                {t.label} ✕
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {list.length ? (
         view === "grid" ? (
           <>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {list.map((c) => <CardTile key={c.id} card={c} />)}
             </div>
             {shown < sorted.length && (
@@ -251,38 +374,49 @@ export default function PlayersPage() {
             )}
           </>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-court-600">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-xl border border-court-600">
+            <table className="w-full min-w-[900px] text-sm">
               <thead className="bg-court-800 text-left text-[10px] uppercase text-slate-500">
                 <tr>
-                  <th className="px-3 py-2">卡</th>
+                  <th className="sticky left-0 z-10 bg-court-800 px-3 py-2">卡</th>
                   <th className="px-2 py-2">位置</th>
                   <th className="px-2 py-2">球队</th>
                   <th className="px-2 py-2">系列</th>
                   <th className="px-2 py-2 text-right">三分</th>
                   <th className="px-2 py-2 text-right">运球</th>
+                  <th className="px-2 py-2 text-right">速度</th>
                   <th className="px-2 py-2 text-right">外防</th>
+                  <th className="px-2 py-2 text-right">内防</th>
+                  <th className="px-2 py-2 text-right">攻板</th>
                   <th className="px-2 py-2 text-right">徽章</th>
                   <th className="px-2 py-2 text-right">价格</th>
+                  <th className="px-2 py-2" />
                 </tr>
               </thead>
               <tbody>
                 {list.map((c) => {
                   const rar = rarity(c.overall);
                   const p = priceOf(c);
+                  const cell = (k: string) => attrNum(c, k) ?? "-";
                   return (
                     <tr key={c.id} className="border-t border-court-700/60 bg-court-900/40 hover:bg-court-800/60">
-                      <td className="px-3 py-2">
+                      <td className="sticky left-0 z-10 bg-court-900 px-3 py-2">
                         <LinkRow id={c.id} ovr={c.overall} name={c.name} rar={rar.text} />
                       </td>
-                      <td className="px-2 py-2 text-xs text-slate-300">{c.position}{c.sec ? `/${c.sec}` : ""}</td>
+                      <td className="px-2 py-2 text-xs text-slate-300">{positionsOf(c).join("/")}</td>
                       <td className="px-2 py-2 text-xs text-slate-400">{c.team ?? "-"}</td>
                       <td className="px-2 py-2 text-xs text-slate-400">{c.theme ?? c.collection ?? "-"}</td>
-                      <td className="px-2 py-2 text-right text-xs">{attrNum(c, "shot_3pt")}</td>
-                      <td className="px-2 py-2 text-right text-xs">{attrNum(c, "ball_handle")}</td>
-                      <td className="px-2 py-2 text-right text-xs">{attrNum(c, "perimeter_defense")}</td>
+                      <td className="px-2 py-2 text-right text-xs">{cell("shot_3pt")}</td>
+                      <td className="px-2 py-2 text-right text-xs">{cell("ball_handle")}</td>
+                      <td className="px-2 py-2 text-right text-xs">{cell("speed")}</td>
+                      <td className="px-2 py-2 text-right text-xs">{cell("perimeter_defense")}</td>
+                      <td className="px-2 py-2 text-right text-xs">{cell("interior_defense")}</td>
+                      <td className="px-2 py-2 text-right text-xs">{cell("offensive_rebound")}</td>
                       <td className="px-2 py-2 text-right text-xs">{c.badge_count ?? 0}</td>
                       <td className="px-2 py-2 text-right font-mono text-xs text-gain">{p != null ? fmtMt(p) : "-"}</td>
+                      <td className="px-2 py-2 text-right">
+                        <Link href={`/compare/?ids=${c.id}`} className="text-[11px] text-slate-500 hover:text-accent">对比</Link>
+                      </td>
                     </tr>
                   );
                 })}
@@ -307,9 +441,9 @@ export default function PlayersPage() {
 
 function LinkRow({ id, ovr, name, rar }: { id: number; ovr: number | null; name: string; rar: string }) {
   return (
-    <Link href={`/player/${id}/`} className="group">
+    <Link href={`/player/${id}/`} className="group flex items-center gap-1.5">
       <span className={`font-black ${rar}`}>{ovr ?? "-"}</span>
-      <span className="ml-2 text-slate-100 group-hover:text-accent">{name}</span>
+      <span className="text-slate-100 group-hover:text-accent">{name}</span>
     </Link>
   );
 }

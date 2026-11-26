@@ -260,8 +260,12 @@ export default function LineupPage() {
         <h1 className="text-xl font-bold text-white">我的阵容</h1>
         <span className="text-xs text-slate-500">
           平均总评 <b className="text-accent">{avgOvr}</b> · 造价{" "}
-          <b className="text-gain">{fmtMt(budget)}</b>
-          {priced.length < filled.length && `（${priced.length}/${filled.length} 张有报价）`}
+          <b className="text-gain">{priced.length ? fmtMt(budget) : "—"}</b>
+          {priced.length < filled.length && (
+            <span className="ml-1 text-amber-300">
+              · 价格尚不完整（{filled.length - priced.length} 张无{basisLabel}报价，未按 0 计入）
+            </span>
+          )}
         </span>
         {warnings.length > 0 && (
           <span className="w-full rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-xs text-amber-300">

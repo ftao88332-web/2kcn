@@ -52,6 +52,23 @@ export default function MarketPage() {
     return by[tab].slice(0, 25);
   }, [doc, tab, pc]);
 
+  // 市场概况：按当前价格池统计，缺价不参与均价
+  const summary = useMemo(() => {
+    if (!doc) return null;
+    const key = pc ? "pc" : "co";
+    let cards = 0, deals = 0, latest = 0, sum = 0;
+    for (const c of ALL) {
+      const e = doc.cards?.[String(c.id)];
+      if (!e) continue;
+      const p = (e[key] ?? null) as number | null;
+      if (p != null) { cards++; sum += p; }
+      deals += (pc ? e.pcs : e.cos) ?? e.s ?? 0;
+      const t = Date.parse(e.u);
+      if (Number.isFinite(t) && t > latest) latest = t;
+    }
+    return { cards, deals, avg: cards ? sum / cards : null, latest };
+  }, [doc, pc]);
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -62,6 +79,24 @@ export default function MarketPage() {
           两边价格互不相通。快照约每 <b className="text-slate-200">15 分钟</b>自动更新。
         </p>
       </div>
+
+      {/* 第一层：市场概况 */}
+      {summary && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { label: "活跃卡片", value: fmtNum(summary.cards), hint: `有${pc ? "PC" : "主机"}成交价` },
+            { label: "成交总量", value: fmtNum(summary.deals), hint: "快照统计口径" },
+            { label: "均价（算术平均）", value: summary.avg != null ? fmtMt(Math.round(summary.avg)) : "-", hint: "非挂单价" },
+            { label: "最近更新", value: summary.latest ? new Date(summary.latest).toLocaleString("zh-CN", { hour12: false }) : "暂无", hint: "目标 15 分钟一次" },
+          ].map((s) => (
+            <div key={s.label} className="rounded-xl border border-court-600 bg-court-800 px-3 py-2.5">
+              <div className="text-[11px] text-muted">{s.label}</div>
+              <div className="mt-0.5 truncate font-mono text-sm text-ink">{s.value}</div>
+              <div className="text-[10px] text-slate-500">{s.hint}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex overflow-hidden rounded-lg border border-court-600 text-xs">

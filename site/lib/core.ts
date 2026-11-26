@@ -19,7 +19,13 @@ export type IndexCard = {
   hof_count?: number | null;
   height_cm?: number | null;
   weight_kg?: number | null;
+  weight_lb?: number | null;
   wingspan_cm?: number | null;
+  released_at?: string | null;
+  has_evo?: boolean | null;
+  has_duo?: boolean | null;
+  /** 卡库/比较器共用的关键属性（瘦字段，完整属性在 cards.json 的 attrs） */
+  stats?: Record<string, number | null> | null;
   attrs?: Record<string, unknown> | null;
   badges?: Record<string, unknown> | null;
   hotzones?: Record<string, unknown> | null;

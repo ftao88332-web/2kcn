@@ -1,6 +1,7 @@
 "use client";
 
 import { IndexCard, withBase } from "@/lib/core";
+import { weightText, lengthText } from "@/lib/units";
 import { TIER_CN, TIER_EN, TIER_COLOR, BADGE_TIER_CN, badgeCn, rarity } from "@/lib/i18n";
 import { AttrsGroups, BadgesGrid, Hotzones, AnimationsGrid, DuoRow, EvoRow } from "@/components/detail-sections";
 import PricePanel from "@/components/price-panel";
@@ -126,9 +127,9 @@ function PlayerDetailInner({ card, badges, hz }: { card: IndexCard; badges: Reco
             )}
 
             <div className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-court-600 pt-4 sm:grid-cols-3 lg:grid-cols-5">
-              <Meta label="身高" value={cm(card.height_cm)} />
-              <Meta label="臂展" value={cm(card.wingspan_cm)} />
-              <Meta label="体重" value={card.weight_kg ? `${card.weight_kg} kg` : "-"} />
+              <Meta label="身高" value={lengthText(card.height_cm)} />
+              <Meta label="臂展" value={lengthText(card.wingspan_cm)} />
+              <Meta label="体重" value={weightText(card.weight_kg, card.weight_lb, { withLb: true })} />
               <Meta label="卡种" value={card.version?.toUpperCase()} />
               <Meta label="卡包 / 系列" value={card.theme || card.collection || "-"} />
             </div>

@@ -14,7 +14,26 @@ FULL = os.path.join(ROOT, "scraper", "out", "cards_full.json")
 DATA = os.path.join(ROOT, "site", "data")
 LEAN_FIELDS = ("id", "name", "version", "overall", "off_overall", "def_overall",
                "position", "sec", "team", "theme", "collection", "tier", "height_cm",
-               "weight_kg", "wingspan_cm", "image", "mt", "badge_count", "hof_count")
+               "weight_kg", "weight_lb", "wingspan_cm", "image", "mt", "badge_count",
+               "hof_count", "released_at", "has_evo", "has_duo", "stats")
+# 比较器/表格共用属性（避免前端再读整份详情数据）
+CMP_ATTRS = (
+    "shot_3pt", "shot_mid", "shot_close", "free_throw", "shot_iq",
+    "driving_layup", "driving_dunk", "standing_dunk", "post_control",
+    "ball_handle", "speed_with_ball", "passing_accuracy", "passing_vision",
+    "speed", "acceleration", "strength", "vertical", "stamina",
+    "perimeter_defense", "interior_defense", "steal", "block", "help_defense_iq",
+    "offensive_rebound", "defensive_rebound",
+)
+
+
+def release_date(row: dict) -> str | None:
+    """卡片上线日期：优先取 2kdb 的 date added（$D2026-08-29T...），否则用抓取时间。"""
+    raw = ((row.get("attrs") or {}).get("date") or "")
+    if isinstance(raw, str) and len(raw) >= 11:
+        return raw.lstrip("$D")[:10]
+    parsed = row.get("parsed_at")
+    return parsed[:10] if isinstance(parsed, str) else None
 
 
 def index_row(row: dict, pool: dict | None = None) -> dict:
@@ -57,6 +76,13 @@ def index_row(row: dict, pool: dict | None = None) -> dict:
             "gains": gains[:12],
         })
 
+    # 比较/表格共用的关键属性（明细见 cards.json，这里只留瘦字段）
+    a = row.get("attrs") or {}
+    stats = {}
+    for k in CMP_ATTRS:
+        v = a.get(k)
+        stats[k] = v if isinstance(v, (int, float)) and not isinstance(v, bool) else None
+
     return {
         "id": row["id"],
         "name": row.get("name"),
@@ -71,12 +97,17 @@ def index_row(row: dict, pool: dict | None = None) -> dict:
         "collection": row.get("collection"),
         "tier": row.get("tier"),
         "height_cm": row.get("height_cm"),
+        "weight_lb": row.get("weight_lb"),
         "weight_kg": row.get("weight_kg"),
         "wingspan_cm": row.get("wingspan_cm"),
+        "released_at": release_date(row),
         "image": row.get("image_url"),
         "mt": market.get("mt"),
         "badge_count": len(badges),
         "hof_count": hof,
+        "has_evo": bool(evos),
+        "has_duo": bool(duos),
+        "stats": stats,
         "attrs": row.get("attrs"),
         "badges": badges,
         "hotzones": row.get("hotzones") or None,
