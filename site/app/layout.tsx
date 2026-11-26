@@ -5,6 +5,8 @@ import DataStamp from "@/components/data-stamp";
 import GlobalSearch from "@/components/global-search";
 import BrandLogo from "@/components/brand-logo";
 
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
 export const metadata: Metadata = {
   title: {
     default: "2K Card Lab | NBA 2K MyTEAM Database",
@@ -13,6 +15,19 @@ export const metadata: Metadata = {
   description:
     "2K Card Lab 是 NBA 2K MyTEAM 中文数据平台，提供球员卡数据库、徽章、球员属性、市场行情分析和阵容构建工具。",
   applicationName: "2K Card Lab",
+  openGraph: {
+    title: "2K Card Lab | NBA 2K MyTEAM Database",
+    description: "NBA 2K MyTEAM 中文数据平台：球员卡数据库、徽章词库、市场行情与我的阵容。",
+    siteName: "2K Card Lab",
+    type: "website",
+    images: [{ url: `${BASE}/brand/og-cover.png`, width: 1200, height: 312, alt: "2K Card Lab" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "2K Card Lab",
+    description: "NBA 2K MyTEAM 中文数据平台",
+    images: [`${BASE}/brand/og-cover.png`],
+  },
 };
 
 const NAV = [
