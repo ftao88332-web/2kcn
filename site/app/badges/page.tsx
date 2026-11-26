@@ -41,7 +41,7 @@ export default function BadgesPage() {
 
       <div className="flex flex-wrap items-center gap-2">
         <input value={q} onChange={(e) => setQ(e.target.value)}
-          placeholder="搜索中文名 / 英文名 / 旧译别名（如 空中魔术师）"
+          placeholder="搜索中文名 / 英文名 / 旧译别名（如 空中作业 / Aerial Wizard）"
           className="w-80 rounded-lg border border-court-600 bg-court-800 px-3 py-2 text-sm outline-none focus:border-accent" />
         <div className="flex flex-wrap items-center gap-1.5">
           <button onClick={() => setCat(CAT_ALL)}
@@ -107,9 +107,6 @@ export default function BadgesPage() {
 
               <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-slate-400">{b.description_zh_cn}</p>
 
-              {b.aliases.length > 0 && (
-                <p className="mt-1 text-[10px] text-slate-600">旧译别名：{b.aliases.join(" / ")}</p>
-              )}
               {b.translation_status !== "source_adopted" && (
                 <p className="mt-1 text-[10px] text-amber-500/70">词库外名称 · 待官方核对</p>
               )}
