@@ -46,7 +46,6 @@ export default function HomeRanks() {
             </button>
           ))}
         </div>
-        <span className="text-[11px] text-slate-500">涨跌按快照首尾点计算，不做补零</span>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

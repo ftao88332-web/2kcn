@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ATTR_CN, ATTR_GROUPS, attrCn, ANIM_GROUPS, animCn } from "@/lib/i18n";
-import { BADGES, LEVELS, badgeName } from "@/lib/badge-lexicon";
+import { LEVELS, badgeName } from "@/lib/badge-lexicon";
 import BadgeItem from "@/components/badge-item";
 import type { IndexCard } from "@/lib/core";
 
@@ -83,8 +83,7 @@ export function BadgesGrid({ badges }: { badges: Record<string, number> }) {
           );
         })}
         <span className="ml-auto text-[11px] text-slate-500">
-          词库：2kAuction 2K27 简体中文 · 共 {BADGES.length} 条
-          <Link href="/badges/" className="ml-2 text-accent hover:underline">徽章库</Link>
+          <Link href="/badges/" className="text-accent hover:underline">徽章库</Link>
         </span>
       </div>
       <div className="flex flex-wrap gap-1.5">
@@ -145,7 +144,6 @@ export function DuoRow({ duos }: { duos: NonNullable<IndexCard["duos"]> }) {
 export function EvoRow({ evos }: { evos: NonNullable<IndexCard["evos"]> }) {
   return (
     <div className="space-y-2.5">
-      <p className="text-xs text-muted">该卡满足进化要求后可升级，以下是各阶段带来的属性与徽章加成。</p>
       {evos.map((e, i) => (
         <div key={i} className="rounded-lg border border-court-600 bg-court-900/50 px-3 py-2.5">
           <div className="flex items-center gap-2">
@@ -227,14 +225,12 @@ export function Hotzones({ hz }: { hz: Record<string, unknown> }) {
       </svg>
 
       <div className="space-y-2 text-[11px] leading-5 text-muted">
-        <p className="font-semibold text-ink/90">投篮热区</p>
         <p className="flex flex-wrap gap-x-4 gap-y-1">
           <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-[#B762FF] align-[-1px]" />大热</span>
           <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-gain align-[-1px]" />热</span>
           <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-accent/50 align-[-1px]" />常规</span>
           <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-court-700 align-[-1px]" />冷区</span>
         </p>
-        <p className="max-w-[180px]">悬停任意区域查看具体热度值。数据来自 2kdb 卡片详情。</p>
       </div>
     </div>
   );

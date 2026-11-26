@@ -128,7 +128,6 @@ export default function ComparePage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-baseline gap-2">
         <h1 className="text-xl font-bold text-white">球员卡比较</h1>
-        <span className="text-xs text-slate-500">最多 {MAX} 张 · 数值最优项高亮 · 无数据显示 —</span>
         <div className="ml-auto flex overflow-hidden rounded-lg border border-court-600 text-xs">
           {PLATFORMS.map((p) => (
             <button key={p.key} onClick={() => setBasis(p.key)}
@@ -173,25 +172,24 @@ export default function ComparePage() {
 
       {picked.length === 0 ? (
         <p className="rounded-xl border border-court-600 bg-court-800 p-8 text-center text-sm text-slate-500">
-          先搜索并添加 2～4 张球员卡，即可横向对比属性、徽章与行情。
+          添加 2～4 张球员卡
         </p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-court-600 bg-court-800">
-          <table className="w-full min-w-[620px] text-sm">
+          <table className="w-full min-w-[820px] table-fixed text-sm">
             <thead className="sticky top-0 z-10 bg-court-900">
               <tr>
-                <th className="w-28 px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">指标</th>
+                <th className="w-[120px] px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">指标</th>
                 {picked.map((c) => (
-                  <th key={c.id} className="px-3 py-2.5 text-left">
-                    <Link href={`/player/${c.id}/`} className="group flex items-center gap-2">
+                  <th key={c.id} className="px-4 py-4 text-center align-top">
+                    <Link href={`/player/${c.id}/`} className="group block">
                       {c.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={withBase(c.image)} alt={c.name} className="h-11 w-9 rounded object-cover" />
+                        <img src={withBase(c.image)} alt={c.name}
+                          className="mx-auto mb-2 aspect-[3/4] w-full max-w-[220px] rounded-lg border border-court-600 object-cover" />
                       ) : null}
-                      <span>
-                        <span className="block text-xs font-bold text-ink group-hover:text-accent">{c.name}</span>
-                        <span className="block text-[10px] text-slate-500">{c.overall} OVR · {positionsOf(c).join("/")}</span>
-                      </span>
+                      <span className="block text-sm font-bold text-ink group-hover:text-accent">{c.name}</span>
+                      <span className="mt-0.5 block text-[11px] text-slate-500">{c.overall} OVR · {positionsOf(c).join("/")}</span>
                     </Link>
                   </th>
                 ))}
@@ -221,11 +219,11 @@ export default function ComparePage() {
                   return (
                     <td key={c.id} className="px-3 py-2 align-top">
                       {only.length ? (
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap justify-center gap-1">
                           {only.map((id) => <BadgeItem key={id} badgeId={id} />)}
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-500">—</span>
+                        <span className="block text-center text-xs text-slate-500">—</span>
                       )}
                     </td>
                   );
@@ -256,7 +254,7 @@ export default function ComparePage() {
               <tr>
                 <td className="px-3 py-2.5" />
                 {picked.map((c) => (
-                  <td key={c.id} className="px-3 py-2.5">
+                  <td key={c.id} className="px-3 py-2.5 text-center">
                     <button onClick={() => remove(c.id)} className="text-[11px] text-slate-500 hover:text-red-400">移除</button>
                   </td>
                 ))}
@@ -289,7 +287,7 @@ function StatTr({ label, cells }: { label: string; cells: Cell[] }) {
       {cells.map((x) => {
         const hot = best != null && x.num != null && x.num === best;
         return (
-          <td key={x.c.id} className={`px-3 py-2 text-xs ${hot ? "font-bold text-accent" : "text-ink/90"}`}>
+          <td key={x.c.id} className={`px-3 py-2 text-center text-xs ${hot ? "font-bold text-accent" : "text-ink/90"}`}>
             {x.v}
           </td>
         );

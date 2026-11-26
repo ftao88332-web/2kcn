@@ -37,7 +37,6 @@ const NAV = [
   { href: "/rankings/", label: "我的排名" },
   { href: "/compare/", label: "球员比较" },
   { href: "/lineup/", label: "我的阵容" },
-  { href: "/updates/", label: "更新" },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -66,22 +65,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </nav>
         </header>
         <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 pb-16 pt-5">{children}</main>
-        <footer className="border-t border-court-600 py-6 text-center text-xs leading-5 text-slate-500">
+        <footer className="border-t border-court-600 py-6 text-center text-xs leading-6 text-slate-500">
           <div className="mb-3 flex justify-center">
             <Link href="/" aria-label="2K Card Lab"><BrandLogo variant="mark" height={24} className="opacity-70 hover:opacity-100" /></Link>
           </div>
-          <p className="mb-2">
+          <p className="mb-4">
             <Link href="/badges/" className="text-slate-400 hover:text-accent">徽章数据库</Link>
             <span className="mx-2 text-slate-600">·</span>
             <Link href="/compare/" className="text-slate-400 hover:text-accent">球员比较</Link>
             <span className="mx-2 text-slate-600">·</span>
             <Link href="/lineup/" className="text-slate-400 hover:text-accent">我的阵容</Link>
           </p>
-          <b className="text-slate-400">2K Card Lab</b> · NBA 2K MyTEAM 数据平台 · 非官方站点，与 2K Sports / Visual Concepts 无关联。
-          <br />
-          徽章中文名称采用 2kAuction 2K27 简体中文词库（53 条）及其余站内既有译名；卡面等游戏资产版权归 2K Sports。
-          <br />
-          行情来自公开拍卖行聚合，仅供参考，不构成交易建议；主机与 PC 两个价格池互不相通，约每 15 分钟更新一次。
+          <p className="mx-auto max-w-3xl px-4 text-left text-[11px] leading-5 text-slate-500">
+            版权免责声明： 本站为 NBA2K 爱好者自制图鉴站点，完全非商用，不提供任何付费、广告、交易服务。页面中出现的卡牌原画、球员肖像、游戏素材、NBA 及 2K 相关商标，版权归属 Take-Two、NBA 以及对应权利人所有。 素材仅用于玩家查阅、交流参考，无任何侵权意图。如版权方认为本站内容侵害您的权益，请联系
+            <a href="mailto:ft050915@163.com" className="text-slate-400 hover:text-accent">ft050915@163.com</a>
+            ，我会第一时间删除相关内容。 本站球员数据仅供参考，不保证 100% 准确。
+          </p>
         </footer>
       </body>
     </html>

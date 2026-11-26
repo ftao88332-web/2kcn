@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { BADGES, CATEGORIES, LEVELS, LEXICON_META, categoryOf } from "@/lib/badge-lexicon";
+import { BADGES, CATEGORIES, LEVELS, categoryOf } from "@/lib/badge-lexicon";
 import { holderCount, holdersOf, tierCounts } from "@/lib/services/badges";
 import { getIndexCard } from "@/lib/services/cards";
 import { rarity } from "@/lib/i18n";
@@ -31,12 +31,6 @@ export default function BadgesPage() {
     <div className="space-y-5">
       <div className="space-y-1.5">
         <h1 className="text-xl font-bold text-white">徽章数据库</h1>
-        <p className="max-w-3xl text-sm text-slate-400">
-          共 <b className="text-ink">{BADGES.length}</b> 条徽章：<b className="text-ink">{LEXICON_META.official_adopted_count}</b> 条采用
-          <a href={LEXICON_META.lexicon_url} target="_blank" rel="noreferrer" className="mx-1 text-accent hover:underline">2kAuction 2K27 简体中文词库</a>
-          ，<b className="text-ink">{LEXICON_META.legacy_count}</b> 条性格类徽章不在该词库内、沿用站内既有译名。
-          徽章名称与等级全部来自同一份词库，详情页 / 卡库筛选 / 比较器共用，不另存第二套译名。
-        </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -105,12 +99,6 @@ export default function BadgesPage() {
                 {n === 0 && <span className="text-[10px] text-amber-400/80">库中暂无持有者</span>}
               </div>
 
-              <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-slate-400">{b.description_zh_cn}</p>
-
-              {b.translation_status !== "source_adopted" && (
-                <p className="mt-1 text-[10px] text-amber-500/70">词库外名称 · 待官方核对</p>
-              )}
-
               <div className="mt-2 flex items-center gap-2">
                 <span className="text-[11px] text-slate-500">{n} 张卡持有</span>
                 {n > 0 && (
@@ -146,11 +134,6 @@ export default function BadgesPage() {
       </div>
 
       {!list.length && <p className="py-10 text-sm text-slate-500">没有匹配的徽章，试试中文名或旧译别名。</p>}
-
-      <p className="rounded-lg border border-court-600 bg-court-800/60 p-3 text-[11px] leading-5 text-slate-500">
-        数据口径：徽章名称为第三方简体中文词库（2kAuction），不代表 2K 官方译名；说明文字为社区通用机制解释，实际效果以游戏内为准。
-        徽章等级（{LEVELS.map((l) => `${l.name_zh}${l.id === "legend" ? "（G.O.A.T. 专属）" : ""}`).join(" / ")}）与卡片宝石档位完全独立。
-      </p>
     </div>
   );
 }

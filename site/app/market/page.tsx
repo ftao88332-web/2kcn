@@ -73,26 +73,20 @@ export default function MarketPage() {
     <div className="space-y-6">
       <div className="space-y-2">
         <h1 className="text-xl font-bold text-white">市场总览</h1>
-        <p className="max-w-2xl text-sm text-slate-400">
-          价格为拍卖行<b className="text-slate-200">实际成交均价</b>（非挂单价）。2K27 的拍卖行分两个价格池：
-          <b className="text-slate-200">主机</b>（PS / XBOX / SWITCH 合并计入）与 <b className="text-slate-200">PC</b>，
-          两边价格互不相通。快照约每 <b className="text-slate-200">15 分钟</b>自动更新。
-        </p>
       </div>
 
       {/* 第一层：市场概况 */}
       {summary && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            { label: "活跃卡片", value: fmtNum(summary.cards), hint: `有${pc ? "PC" : "主机"}成交价` },
-            { label: "成交总量", value: fmtNum(summary.deals), hint: "快照统计口径" },
-            { label: "均价（算术平均）", value: summary.avg != null ? fmtMt(Math.round(summary.avg)) : "-", hint: "非挂单价" },
-            { label: "最近更新", value: summary.latest ? new Date(summary.latest).toLocaleString("zh-CN", { hour12: false }) : "暂无", hint: "目标 15 分钟一次" },
+            { label: "活跃卡片", value: fmtNum(summary.cards) },
+            { label: "成交总量", value: fmtNum(summary.deals) },
+            { label: "均价", value: summary.avg != null ? fmtMt(Math.round(summary.avg)) : "-" },
+            { label: "最近更新", value: summary.latest ? new Date(summary.latest).toLocaleString("zh-CN", { hour12: false }) : "暂无" },
           ].map((s) => (
             <div key={s.label} className="rounded-xl border border-court-600 bg-court-800 px-3 py-2.5">
               <div className="text-[11px] text-muted">{s.label}</div>
               <div className="mt-0.5 truncate font-mono text-sm text-ink">{s.value}</div>
-              <div className="text-[10px] text-slate-500">{s.hint}</div>
             </div>
           ))}
         </div>

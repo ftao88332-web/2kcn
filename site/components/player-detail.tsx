@@ -66,9 +66,9 @@ function PlayerDetailInner({ card, badges, hz }: { card: IndexCard; badges: Reco
             {card.image ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={withBase(card.image)} alt={card.name}
-                className="h-52 w-40 rounded-lg object-cover sm:h-64 sm:w-52" />
+                className="aspect-[3/4] w-52 rounded-lg object-cover sm:w-64 lg:w-72" />
             ) : (
-              <div className="grid h-52 w-40 place-items-center rounded-lg bg-court-700 text-xs text-muted sm:h-64 sm:w-52">
+              <div className="grid aspect-[3/4] w-52 place-items-center rounded-lg bg-court-700 text-xs text-muted sm:w-64 lg:w-72">
                 暂无卡面
               </div>
             )}
@@ -193,9 +193,6 @@ function PlayerDetailInner({ card, badges, hz }: { card: IndexCard; badges: Reco
             徽章 <span className="text-xs font-normal text-muted">{badgeSummary(badges)}</span>
           </h2>
           <BadgesGrid badges={badges} />
-          <p className="mt-3 text-[11px] text-slate-500">
-            徽章等级（{LEVELS.map((l) => l.name_zh).join(" / ")}）与卡片宝石档位是两套独立体系，本页只表示徽章强度。
-          </p>
         </section>
       )}
 
@@ -215,9 +212,7 @@ function PlayerDetailInner({ card, badges, hz }: { card: IndexCard; badges: Reco
 
       {tab === "market" && (
         <section className="rounded-xl border border-court-600 bg-court-800 p-5">
-          <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-ink">
-            拍卖行 & 成交历史 <span className="text-xs font-normal text-muted">全站快照 · {card.overall ?? "?"} OVR</span>
-          </h2>
+          <h2 className="mb-4 text-base font-bold text-ink">拍卖行 & 成交历史</h2>
           <PricePanel cardId={card.id} />
         </section>
       )}

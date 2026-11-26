@@ -187,11 +187,7 @@ export default function RankingsPage() {
     <div className="space-y-5">
       <header className="rounded-2xl border border-court-600 bg-court-800 p-5">
         <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-accent">MY RANKINGS</p>
-        <h1 className="mt-2 text-2xl font-black text-white">我的球员排名 <span className="ml-2 text-xs font-medium tracking-widest text-slate-500">NBA 2K27 · MYTEAM PLAYER RANKINGS</span></h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-          官方给数据，顺序由你定。五个位置各自独立排名，可以任意把 95 分的卡排在 99 分前面。
-          排名按<strong className="text-slate-300">具体球员卡</strong>记录（同一名球员的不同版本分别排名），数据只存在这台设备的浏览器里。
-        </p>
+        <h1 className="mt-2 text-2xl font-black text-white">我的球员排名</h1>
       </header>
 
       {/* 方案 */}
@@ -255,7 +251,6 @@ export default function RankingsPage() {
             className={`rounded-lg border px-2.5 py-1.5 text-[11px] ${locked ? "border-warning/60 text-warning" : "border-court-600 text-slate-400 hover:text-white"}`}>
             {locked ? "已锁定 · 点击解锁" : "锁定本位置"}
           </button>
-          <span className="text-[11px] text-slate-600">自动保存 · 仅本机浏览器</span>
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
@@ -327,13 +322,8 @@ export default function RankingsPage() {
             className="rounded-lg border border-court-600 px-2.5 py-1 text-[11px] text-slate-400 hover:text-white disabled:opacity-40">+ 增加卡槽（5 个）</button>
         </div>
 
-        {locked && <p className="mt-3 text-[11px] text-warning">本位置已锁定：添加、删除、排序、备注都不可修改，先解锁再编辑。</p>}
+        {locked && <p className="mt-3 text-[11px] text-warning">本位置已锁定</p>}
       </section>
-
-      <p className="text-[11px] leading-5 text-slate-600">
-        排名是你自己的判断，不是官方数据，也不构成强度结论。榜单只写入本机 localStorage，清除浏览器数据会一起丢失，建议定期导出 JSON 备份。
-        社区排名、账号同步、图片导出属于下一阶段（需要后端），V1 不提供。
-      </p>
 
       <CardPicker open={picker} cards={ALL} excludes={names} onPick={addCard} onClose={() => setPicker(false)} />
 
@@ -343,7 +333,6 @@ export default function RankingsPage() {
             <h3 className="text-sm font-bold text-ink">
               {schemeDialog.mode === "new" ? "新建排名方案" : schemeDialog.mode === "rename" ? "重命名方案" : "复制方案"}
             </h3>
-            <p className="mt-1 text-[11px] text-slate-500">方案之间互不覆盖，各自保存五个位置。</p>
             <input autoFocus value={schemeDialog.value} onChange={(e) => setSchemeDialog({ ...schemeDialog, value: e.target.value })}
               onKeyDown={(e) => { if (e.key === "Enter") createScheme(schemeDialog.mode, schemeDialog.value); }}
               placeholder="如 竞技场实战排名 / 性价比排名"

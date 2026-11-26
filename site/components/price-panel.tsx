@@ -133,10 +133,6 @@ export default function PricePanel({ cardId }: { cardId: number | string }) {
           </tbody>
         </table>
       )}
-      <p className="mt-3 text-[10px] leading-4 text-muted">
-        数据来自社区聚合的拍卖行成交记录 · 全站快照 {relativeBy(doc?.ts ?? "")} · 非挂单价。
-        2K27 的拍卖行分两个价格池：主机（PS / XBOX / SWITCH 合并计入）与 PC，两个池子的价格互不相通。
-      </p>
     </div>
   );
 }

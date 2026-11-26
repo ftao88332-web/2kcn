@@ -26,10 +26,6 @@ export default function Home() {
         <h1 className="mt-2 text-2xl font-black leading-tight text-white sm:text-3xl">
           NBA 2K MyTEAM 数据平台
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-          数据驱动每一次阵容选择：球员卡数据库、徽章、市场行情与阵容构建。
-          徽章中文名统一采用 2kAuction 2K27 简体中文词库，主机与 PC 两个价格池独立统计。
-        </p>
         <div className="mt-4 max-w-xl"><GlobalSearch /></div>
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
@@ -60,7 +56,7 @@ export default function Home() {
       {/* 3 市场概览（主机 + PC 两个价格池）——手机端隐藏，避免首屏被行情挤满 */}
       <section className="hidden sm:block">
         <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-lg font-bold text-white">市场概览 <span className="text-xs font-normal text-slate-500">主机 · PC 独立价格池</span></h2>
+          <h2 className="text-lg font-bold text-white">市场概览</h2>
           <Link href="/market/" className="text-xs text-accent hover:underline">全部 →</Link>
         </div>
         <MarketBoard list="co" limit={10} />
@@ -69,9 +65,8 @@ export default function Home() {
 
       {/* 4 最新卡片 */}
       <section>
-        <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-lg font-bold text-white">最新卡片 <span className="text-xs font-normal text-slate-500">按入库日期倒序</span></h2>
-          <Link href="/updates/" className="text-xs text-accent hover:underline">更新中心 →</Link>
+        <div className="mb-3">
+          <h2 className="text-lg font-bold text-white">最新卡片</h2>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {latest.map((c) => (
@@ -89,7 +84,7 @@ export default function Home() {
       {/* 7 高总评卡片 */}
       <section>
         <h2 className="mb-3 text-lg font-bold text-white">高总评卡片</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {topOvr.map((c) => <CardTile key={c.id} card={c} />)}
         </div>
       </section>
@@ -99,23 +94,17 @@ export default function Home() {
         <h2 className="mb-3 text-lg font-bold text-white">快捷工具</h2>
         <div className="grid gap-3 sm:grid-cols-3">
           {[
-            { href: "/compare/", title: "球员比较器", desc: "2–4 张卡横向对比属性、徽章与价格" },
-            { href: "/lineup/", title: "阵容构建", desc: "15 人阵容、平均总评与总造价" },
-            { href: "/badges/", title: "徽章数据库", desc: "53 条官方词库 + 分类与持有卡片" },
+            { href: "/compare/", title: "球员比较器" },
+            { href: "/lineup/", title: "阵容构建" },
+            { href: "/badges/", title: "徽章数据库" },
           ].map((t) => (
             <Link key={t.href} href={t.href}
               className="rounded-xl border border-court-600 bg-court-800 p-4 transition hover:border-accent/60 hover:bg-court-650/40">
               <p className="text-sm font-bold text-ink">{t.title}</p>
-              <p className="mt-1 text-xs leading-5 text-slate-500">{t.desc}</p>
             </Link>
           ))}
         </div>
       </section>
-
-      <p className="text-[11px] leading-5 text-slate-600">
-        非官方站点，与 2K Sports / Visual Concepts 无关联。行情来自公开拍卖行聚合，仅供参考，不构成交易建议。
-        数据更新时间以页面顶部行情时间戳为准；无历史快照时一律显示暂无数据，不做补零。
-      </p>
     </div>
   );
 }

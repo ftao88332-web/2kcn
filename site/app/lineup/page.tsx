@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import cards from "@/data/cards_index.json";
 import { IndexCard, fmtMt, withBase } from "@/lib/core";
 import { usePrices } from "@/lib/use-prices";
@@ -313,9 +312,7 @@ export default function LineupPage() {
         <div className="rounded-xl border border-court-600 bg-court-800 p-4">
           {slot == null ? (
             <div className="space-y-2 text-sm text-slate-400">
-              <p className="font-semibold text-ink">选一张卡放进阵容</p>
-              <p>点击左侧任意空位，然后搜索能打该位置的球员。卡可同时打主位置和副位置（例如主 SF 副 SG 的卡也能放进 SG 位），但 PG 不能打中锋。</p>
-              <p className="text-xs text-slate-500">阵容自动保存在本机；点「分享链接」可发给朋友直接还原。</p>
+              <p className="font-semibold text-ink">点击左侧空位选卡</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -335,8 +332,8 @@ export default function LineupPage() {
                     {c.image ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={withBase(c.image)} alt="" loading="lazy"
-                        className="h-12 w-9 shrink-0 rounded object-cover object-top" />
-                    ) : <div className="h-12 w-9 shrink-0 rounded bg-court-700" />}
+                        className="h-16 w-12 shrink-0 rounded object-cover object-top" />
+                    ) : <div className="h-16 w-12 shrink-0 rounded bg-court-700" />}
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm text-ink">{c.name}</span>
                       <span className="block truncate text-[11px] text-slate-500">
@@ -352,10 +349,6 @@ export default function LineupPage() {
           )}
         </div>
       </div>
-
-      <p className="text-xs text-slate-500">
-        想看完整卡库？<Link href="/players/" className="text-accent hover:underline">去卡库</Link>
-      </p>
     </div>
   );
 }
@@ -378,7 +371,7 @@ function Slot({ i, card, active, basis, doc, onPick, onRemove }: {
   return (
     <div className={`group relative overflow-hidden rounded-lg border bg-court-900/60 transition ${active ? "border-accent" : "border-court-600"}`}>
       <button onClick={onPick} className="block w-full text-left">
-        <span className="relative block h-24 w-full overflow-hidden bg-court-800 sm:h-28">
+        <span className="relative block aspect-[3/4] w-full overflow-hidden bg-court-800">
           {card?.image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={withBase(card.image)} alt={card.name} loading="lazy"

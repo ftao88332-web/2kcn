@@ -33,7 +33,6 @@ export default function CardPicker({
       <div className="w-full max-w-2xl rounded-2xl border border-court-600 bg-court-800 p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center gap-2">
           <h3 className="text-sm font-bold text-ink">添加球员卡</h3>
-          <span className="text-[11px] text-slate-500">从 2K Card Lab 数据库中选择</span>
           <button onClick={onClose} className="ml-auto rounded-lg border border-court-600 px-2 py-1 text-xs text-slate-400 hover:text-white">关闭</button>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -64,8 +63,8 @@ export default function CardPicker({
                 }`}>
                 {c.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={withBase(c.image)} alt="" className="h-10 w-8 shrink-0 rounded object-cover" loading="lazy" />
-                ) : <div className="h-10 w-8 shrink-0 rounded bg-court-900" />}
+                  <img src={withBase(c.image)} alt="" className="h-16 w-12 shrink-0 rounded object-cover" loading="lazy" />
+                ) : <div className="h-16 w-12 shrink-0 rounded bg-court-900" />}
                 <span className="font-mono text-sm font-bold text-accent">{c.overall ?? "-"}</span>
                 <span className="min-w-0 flex-1 truncate text-xs text-ink">{c.name}
                   {c.version && <span className="ml-1 text-slate-500">{c.version}</span>}

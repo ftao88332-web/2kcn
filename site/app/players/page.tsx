@@ -192,7 +192,7 @@ export default function PlayersPage() {
 
   const sorted = useMemo(() => {
     const arr = filtered.slice();
-    const dir = sortDesc ? 1 : -1;
+    const dir = sortDesc ? -1 : 1;
     const num = (c: QueryCard, key: string): number => {
       if (key === "price") return priceOf(c) ?? -1;
       if (key === "overall") return c.overall ?? -1;
@@ -237,7 +237,6 @@ export default function PlayersPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-baseline gap-2">
         <h1 className="text-xl font-bold text-white">球员卡</h1>
-        <span className="hidden text-[11px] uppercase tracking-widest text-slate-600 sm:inline">Player Cards</span>
         <span className="text-xs text-slate-500">
           共 {ALL.length} 张 · 筛选出 {filtered.length} 张
           {doc?.ts && ` · 行情快照 ${new Date(doc.ts).toLocaleString("zh-CN", { hour12: false })}`}
@@ -448,7 +447,7 @@ export default function PlayersPage() {
       {list.length ? (
         view === "grid" ? (
           <>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {list.map((c) => <CardTile key={c.id} card={c} />)}
             </div>
             {shown < sorted.length && (
@@ -520,7 +519,7 @@ export default function PlayersPage() {
           </div>
         )
       ) : (
-        <p className="py-10 text-sm text-slate-500">没有匹配的卡片，试试放宽筛选条件。</p>
+        <p className="py-10 text-sm text-slate-500">没有匹配的卡片</p>
       )}
     </div>
   );

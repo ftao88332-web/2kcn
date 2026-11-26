@@ -20,10 +20,10 @@ export default function CardTile({ card }: { card: IndexCard }) {
               src={withBase(card.image)}
               alt={card.name}
               loading="lazy"
-              className="h-40 w-full object-cover object-top"
+              className="aspect-[3/4] w-full object-cover object-top"
             />
           ) : (
-            <div className="grid h-40 w-full place-items-center bg-court-700 text-xs text-slate-500">暂无卡面</div>
+            <div className="grid aspect-[3/4] w-full place-items-center bg-court-700 text-xs text-slate-500">暂无卡面</div>
           )}
           <div className="absolute left-2 top-2 rounded px-1.5 py-0.5 text-lg font-black leading-none bg-court-900/70">
             <span className={rar.text}>{card.overall ?? "?"}</span>

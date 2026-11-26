@@ -69,7 +69,7 @@ export default function MarketBoard({ list = "co", limit = 10 }: { list?: "co" |
             {!rs.length && (
               <tr>
                 <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
-                  本轮没有该端的成交榜数据（下一轮行情会补上）。
+                  暂无数据
                 </td>
               </tr>
             )}
